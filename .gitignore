@@ -1,0 +1,6 @@
+bin/**
+dist-newstyle
+elk
+result
+tmp/**
+.DS_Store

@@ -1,0 +1,91 @@
+cabal-version:        3.4
+name:                 deid
+version:              0.1.0.0
+license:              BSD-3-Clause
+author:               Michael Lee
+maintainer:           milee@liveperson.com
+category:             application
+extra-source-files:   README.md
+
+library
+  exposed-modules:    Gcp.Send
+                    , Model.BigQuery
+                    , Model.CloudRun
+                    , Model.Log
+                    , Model.PubSub
+  hs-source-dirs:     src
+  ghc-options:        -O2 -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -fno-warn-type-defaults -flate-specialise -fspecialise-aggressively
+  default-language:   Haskell2010
+  default-extensions: BangPatterns
+                    , BlockArguments
+                    , ConstraintKinds
+                    , DataKinds
+                    , DeriveAnyClass
+                    , DeriveFunctor
+                    , DeriveGeneric
+                    , DerivingVia
+                    , DuplicateRecordFields
+                    , FlexibleContexts
+                    , FlexibleInstances
+                    , GADTs
+                    , KindSignatures
+                    , LambdaCase
+                    , MultiParamTypeClasses
+                    , PatternSynonyms
+                    , PolyKinds
+                    , OverloadedStrings
+                    , OverloadedLabels
+                    , PolyKinds
+                    , RankNTypes
+                    , StandaloneDeriving
+                    , ScopedTypeVariables
+                    , StarIsType
+                    , StrictData
+                    , TemplateHaskell
+                    , TupleSections
+                    , TypeApplications
+                    , TypeFamilies
+                    , TypeOperators
+                    , TypeSynonymInstances
+                    , UndecidableInstances
+  build-depends:      base ^>= 4.16.1.0
+                    , aeson
+                    , aeson-optics
+                    , bloodhound
+                    , bytestring
+                    , containers
+                    , either
+                    , exceptions
+                    , extra
+                    , foldl
+                    , fused-effects
+                    , generic-aeson
+                    , gogol
+                    , gogol-bigquery
+                    , gogol-core
+                    , gogol-pubsub
+                    , iso8601-time
+                    , lens
+                    , optics
+                    , optparse-applicative
+                    , servant
+                    , servant-server
+                    , split
+                    , streamly
+                    , text
+                    , text-conversions
+                    , time
+                    , unordered-containers
+                    , uuid
+
+executable deid
+  main-is: deid.hs
+  hs-source-dirs: app
+  ghc-options: -Wall -O2 -flate-specialise -fspecialise-aggressively
+  default-language: Haskell2010
+  default-extensions: LambdaCase
+                    , OverloadedStrings
+  build-depends: base ^>= 4.16.1.0
+               , deid
+               , read-env-var
+               , warp
