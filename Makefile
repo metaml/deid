@@ -4,8 +4,9 @@ export SHELL := /bin/sh
 export NIX_REMOTE = daemon
 
 PROJECT ?= ${HOME}/${LOGNAME}/proj/deid
-OPT ?=#
-PWD = $(shell pwd)
+OPT     ?=#
+PWD      = $(shell pwd)
+PORT    ?= 9200
 
 build: clean ## build
 	cabal $(OPT) build --minimize-conflict-set --jobs='$$ncpus' | source-highlight --src-lang=haskell --out-format=esc
@@ -86,3 +87,7 @@ docker-shell: ## run docker shell
 	  --mount type=bind,src=$(PWD),dst=/root/src \
 	  --mount type=bind,src=$(PWD)/tmp/cabal,dst=/root/cabal \
 	  nix-builder:latest
+
+es-va-proxy: ESC = svor-esc101
+es-va-proxy: ## ssh tunnel to an esc server in VA
+	ssh -L $(PORT):$(ESC):9200 svvr-mng77
