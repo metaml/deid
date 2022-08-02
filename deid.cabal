@@ -55,9 +55,6 @@ library
                     , containers
                     , either
                     , exceptions
-                    , extra
-                    , foldl
-                    , fused-effects
                     , generic-aeson
                     , gogol
                     , gogol-bigquery
@@ -66,18 +63,13 @@ library
                     , http-client
                     , iso8601-time
                     , lens
-                    , optics
                     , optparse-applicative
-                    , servant
-                    , servant-server
                     , sort
                     , split
                     , streamly
                     , text
                     , text-conversions
                     , time
-                    , unordered-containers
-                    , uuid
 
 executable deid
   main-is: deid.hs
@@ -87,7 +79,10 @@ executable deid
   default-extensions: LambdaCase
                     , OverloadedStrings
   build-depends: base ^>= 4.16.1.0
+               , aeson
                , bloodhound
                , deid
+               , lens
+               , lens-aeson
                , read-env-var
                , streamly

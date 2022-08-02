@@ -43,14 +43,14 @@ currentIndexes s = do
           & S.toList
   pure $ P.concat ixss
 
-documents :: Server -> IndexName -> IO [ParsedEsResponse (SearchResult Value)]
-documents srv ix' = S.fromPure (filter', spec)
-                    & S.map (\(f, s) -> (QueryBoolQuery $ mkBoolQuery [] [f] [] [], f, s))
-                    & S.map (\(q, f, s) -> (mkSearch (Just q) (Just f)) { sortBody = Just [s] })
-                    & S.map (pageSearch (From 0) (Size 1000))
-                    & S.mapM (\s -> withBH defaultManagerSettings srv (searchByIndex ix' s))
-                    & S.mapM parseEsResponse
-                    & S.toList
+documents :: Server -> IndexName -> Int -> Int -> IO [ParsedEsResponse (SearchResult Value)]
+documents srv ix' from' size' = S.fromPure (filter', spec)
+                                & S.map (\(f, s) -> (QueryBoolQuery $ mkBoolQuery [] [f] [] [], f, s))
+                                & S.map (\(q, f, s) -> (mkSearch (Just q) (Just f)) { sortBody = Just [s] })
+                                & S.map (pageSearch (From from') (Size size'))
+                                & S.mapM (\s -> withBH defaultManagerSettings srv (searchByIndex ix' s))
+                                & S.mapM parseEsResponse
+                                & S.toList
   where filter' = Filter $ MatchAllQuery Nothing
         spec = DefaultSortSpec $ mkSort (FieldName "@timestamp") Descending
 
