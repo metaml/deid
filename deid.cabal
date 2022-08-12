@@ -10,6 +10,7 @@ extra-source-files:   README.md
 library
   exposed-modules:    Gcp.Send
                     , Model.BigQuery
+                    , Model.Deid
                     , Model.Elastic
                     , Model.Log
   hs-source-dirs:     src
@@ -86,3 +87,4 @@ executable deid
                , lens-aeson
                , read-env-var
                , streamly
+               , text
