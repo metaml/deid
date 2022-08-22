@@ -6,10 +6,19 @@ import Data.Aeson.Types (emptyObject)
 import Data.Either
 import Data.Function ((&))
 import Data.Maybe (fromMaybe)
+import Data.Text as T
 import Database.Bloodhound hiding (key)
+import Model.Deid
 import Model.Elastic
 import Prelude as P
 import Streamly.Prelude as S
+
+type DeidTuple = ( DocId
+                 , Maybe Text
+                 , Maybe Text
+                 , Maybe Text
+                 , Maybe Text
+                 )
 
 main :: IO ()
 main = do
@@ -25,14 +34,18 @@ main = do
     & S.map hits
     & S.concatMap S.fromFoldable
     & S.map (\h -> (hitDocId h, hitSource h))
-    & S.map (\(dId, obj) -> (dId, fromMaybe emptyObject obj))
-    & S.map (\(dId, obj) ->
-               ( dId
-               , obj ^? L.key "lp_owner" . _String
-               , obj ^? L.key "service_name" . _String
-               , obj ^? L.key "message" . _String
-               , obj ^? L.key "@timestamp" . _String
-               )
+    & S.map (\(id', obj) -> (id', fromMaybe emptyObject obj))
+    & S.map (\(id', obj) -> ( id'
+                            , obj ^? L.key "lp_owner" . _String
+                            , obj ^? L.key "service_name" . _String
+                            , obj ^? L.key "message" . _String
+                            , obj ^? L.key "@timestamp" . _String
+                            )
             )
+    & S.map toDeid
     & S.mapM print
     & S.drain
+  where
+    toDeid :: DeidTuple -> Either Text Log
+    toDeid (id', Just lo, Just sn, Just msg, Just ts) = Right $ Log id' lo sn msg ts
+    toDeid tuple = Left $ "error: " <> (T.pack . show $ tuple)

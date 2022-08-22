@@ -37,6 +37,7 @@ library
                     , OverloadedLabels
                     , PolyKinds
                     , RankNTypes
+                    , RecordWildCards
                     , StandaloneDeriving
                     , ScopedTypeVariables
                     , StarIsType
@@ -47,7 +48,6 @@ library
                     , TypeFamilies
                     , TypeOperators
                     , TypeSynonymInstances
-                    , UndecidableInstances
   build-depends:      base ^>= 4.16.1.0
                     , aeson
                     , aeson-optics
@@ -60,11 +60,13 @@ library
                     , gogol
                     , gogol-bigquery
                     , gogol-core
+                    , gogol-dlp
                     , gogol-pubsub
                     , http-client
                     , iso8601-time
                     , lens
                     , optparse-applicative
+                    , servant-client
                     , sort
                     , split
                     , streamly
@@ -88,3 +90,4 @@ executable deid
                , read-env-var
                , streamly
                , text
+               , time
