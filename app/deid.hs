@@ -1,6 +1,6 @@
 module Main where
 
-import Control.Lens ((^?))
+import Control.Lens ((^?), (^.))
 import Data.Aeson.Lens as L
 import Data.Aeson.Types (emptyObject)
 import Data.Either
@@ -43,6 +43,12 @@ main = do
                             )
             )
     & S.map toDeid
+    & S.mapM (\case
+                 Right l -> do
+                   r <- inspectContent (l ^. message)
+                   pure $ Right (r, l)
+                 Left e  -> pure $ Left e
+             )
     & S.mapM print
     & S.drain
   where

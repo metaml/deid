@@ -20,11 +20,13 @@ data Log = Log { _docId :: DocId
 
 makeLenses ''Log
 
-inspectContent :: Text -> IO (Rs DLPProjectsLocationsContentInspect)
-inspectContent t = do
-  let p = inspectContentReq t
+type Message = Text
+
+inspectContent :: Message -> IO (Rs DLPProjectsLocationsContentInspect)
+inspectContent msg = do
+  let p = inspectContentReq msg
       r = newDLPProjectsLocationsContentInspect "projects/lpgprj-gss-p-ctrlog-gl-01/locations/us-east1" p
-      ps = Proxy :: Proxy '[CloudPlatform'FullControl]
+      ps = Proxy :: Proxy (Scopes DLPProjectsLocationsContentInspect)
   send' r ps
 
 -- NB: odd record update error that requires a type signature
