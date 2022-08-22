@@ -4,8 +4,11 @@ import Control.Lens
 import Data.Aeson
 import Data.Text
 import Database.Bloodhound hiding (key)
-import Gogol.DLP.Types
 import GHC.Generics
+import Gcp.Send (send')
+import Gogol.DLP
+import Gogol.DLP.Types
+import Gogol.Prelude
 
 data Log = Log { _docId :: DocId
                , _lpOwner :: Text
@@ -16,6 +19,13 @@ data Log = Log { _docId :: DocId
          deriving (Generic, Show, ToJSON, FromJSON)
 
 makeLenses ''Log
+
+inspectContent :: Text -> IO (Rs DLPProjectsLocationsContentInspect)
+inspectContent t = do
+  let p = inspectContentReq t
+      r = newDLPProjectsLocationsContentInspect "projects/lpgprj-gss-p-ctrlog-gl-01/locations/us-east1" p
+      ps = Proxy :: Proxy '[CloudPlatform'FullControl]
+  send' r ps
 
 -- NB: odd record update error that requires a type signature
 inspectContentReq :: Text -> GooglePrivacyDlpV2InspectContentRequest
