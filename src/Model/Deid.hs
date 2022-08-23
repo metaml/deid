@@ -21,11 +21,12 @@ data Log = Log { _docId :: DocId
 makeLenses ''Log
 
 type Message = Text
+type Parent = Text
 
-inspectContent :: Message -> IO (Rs DLPProjectsLocationsContentInspect)
-inspectContent msg = do
+inspectContent :: Message -> Parent -> AccessToken -> IO (Rs DLPProjectsLocationsContentInspect)
+inspectContent msg par (AccessToken tok) = do
   let p = inspectContentReq msg
-      r = newDLPProjectsLocationsContentInspect "projects/lpgprj-gss-p-ctrlog-gl-01/locations/us-east1" p
+      r = (newDLPProjectsLocationsContentInspect par p) { accessToken = Just tok } :: DLPProjectsLocationsContentInspect
       ps = Proxy :: Proxy (Scopes DLPProjectsLocationsContentInspect)
   send' r ps
 

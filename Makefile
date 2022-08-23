@@ -39,6 +39,8 @@ clobber: clean ## cleanpq
 	rm -rf dist-newstyle
 	rm -rf tmp/*
 
+# make activate KEY_FILE=... first
+run: export GOOGLE_APPLICATION_CREDENTIALS := /Users/milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-5be472e42700.json
 run: ## run BIN, e.g. make run BIN=<binary>
 	cabal $(OPT) run $(BIN) -- $(ARG)
 
@@ -51,6 +53,10 @@ update: ## update project depedencies
 gcp-login: ## login to GCP
 	gcloud auth login
 	gcloud auth application-default login
+
+# KEY_FILE=~milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-5be472e42700.json
+gcp-activate:  ## activate service account--copy and paste "dlp-api" service-account key, KEY_FILE=<dlp-api>.json
+	gcloud auth activate-service-account --key-file ${KEY_FILE}
 
 help: ## help
 	-@grep --extended-regexp '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \

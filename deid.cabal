@@ -85,6 +85,7 @@ executable deid
                , aeson
                , bloodhound
                , deid
+               , gogol-core
                , lens
                , lens-aeson
                , read-env-var
