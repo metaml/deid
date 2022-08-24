@@ -17,11 +17,20 @@ data Log = Log { _docId :: DocId
                , _timestamp :: Text
                }
          deriving (Generic, Show, ToJSON, FromJSON)
-
 makeLenses ''Log
 
 type Message = Text
 type Parent = Text
+
+inspectLog :: Either Text Log -> IO (Either Text (GooglePrivacyDlpV2InspectContentResponse, Log))
+inspectLog e = case e of
+                 Right l -> if (l ^. message) /= ""
+                            then do
+                              r <- inspectContent (l ^. message) "projects/lpgprj-gss-p-ctrlog-gl-01/locations/us-east1"
+                              pure $ Right (r, l)
+                            else
+                              pure $ Left (pack . show $ l)
+                 Left e' -> pure $ Left e'
 
 inspectContent :: Message -> Parent -> IO (Rs DLPProjectsLocationsContentInspect)
 inspectContent msg par = do

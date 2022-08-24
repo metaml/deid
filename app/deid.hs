@@ -1,11 +1,9 @@
-{-# language OverloadedRecordDot #-}
-{-# language DuplicateRecordFields #-}
-{-# language NoFieldSelectors #-}
 module Main where
 
-import Control.Lens ((^?), (^.))
-import Data.Aeson.Lens as L
-import Data.Aeson.Types (emptyObject)
+import Control.Lens ((^?))
+import Data.Aeson.Key as A
+import Data.Aeson.Lens as A
+import Data.Aeson.Types (Value, emptyObject)
 import Data.Either
 import Data.Function ((&))
 import Data.Maybe (fromMaybe)
@@ -17,11 +15,16 @@ import Model.Elastic
 import Prelude as P
 import Streamly.Prelude as S
 
+type LpOwner = Text
+type ServiceName = Text
+type LogMessage = Text
+type Timestamp = Text
+
 type DeidTuple = ( DocId
-                 , Maybe Text
-                 , Maybe Text
-                 , Maybe Text
-                 , Maybe Text
+                 , Maybe LpOwner
+                 , Maybe ServiceName
+                 , Maybe LogMessage
+                 , Maybe Timestamp
                  )
 
 main :: IO ()
@@ -39,59 +42,36 @@ main = do
     & S.map hits
     & S.concatMap S.fromFoldable
     & S.map (\h -> (hitDocId h, hitSource h))
-    & S.map (\(id', obj) -> (id', fromMaybe emptyObject obj))
-    & S.map (\(id', obj) -> ( id'
-                            , obj ^? L.key "lp_owner" . _String
-                            , obj ^? L.key "service_name" . _String
-                            , obj ^? L.key "message" . _String
-                            , obj ^? L.key "@timestamp" . _String
-                            )
-            )
+    & S.map (\(id', o) -> (id', fromMaybe emptyObject o))
+    & S.map (\(id', o) -> (id', select "lp_owner" o, select "service_name" o, select "message" o, select "@timestamp" o))
     & S.map toDeid
-    & S.mapM (\case
-                 Right l -> if (l ^. message) /= ""
-                            then do
-                              r <- inspectContent (l ^. message) "projects/lpgprj-gss-p-ctrlog-gl-01/locations/us-east1"
-                              pure $ Right (r, l)
-                            else
-                              pure $ Left (T.pack . show $ l)
-                 Left e -> pure $ Left e
-             )
-    & S.mapM (\case
-                 Right (GooglePrivacyDlpV2InspectContentResponse r, l) ->
-                   case r of
-                     Just (GooglePrivacyDlpV2InspectResult (Just fs) _) -> pure $ (\f -> (f, l)) <$> fs
-                     Just (GooglePrivacyDlpV2InspectResult Nothing _)   -> pure []
-                     Nothing -> pure []
-                 Left e -> putStrLn (show e) >> pure []
-             )
+    & S.mapM inspectLog
+    & S.mapM toFindings
     & S.filter (not . P.null)
     & S.concatMap S.fromFoldable
-    & S.map (\(f, Log id' lpo sn _ t) -> ( id'
-                                         , lpo
-                                         , sn
-                                         , f.quote
-                                         , f.infoType
-                                         , f.likelihood
-                                         , t
-                                         , f
-                                         )
-            )
-    & S.map (\(id', lpo, sn, q, it, l, t, f) -> ( id'
-                                                , lpo
-                                                , sn
-                                                , q
-                                                , case it of
-                                                    Just it' -> it'.name
-                                                    Nothing  -> Nothing
-                                                , l
-                                                , t
-                                                , f
-                                                )
+    & S.map (\(f, Log id' lo sn _ t) -> ( id'
+                                        , lo
+                                        , sn
+                                        , f.quote
+                                        , f.infoType
+                                        , f.likelihood
+                                        , t
+                                        )
             )
     & S.mapM print
     & S.drain
-  where
-    toDeid :: DeidTuple -> Either Text Log
-    toDeid (id', Just lo, Just sn, Just msg, Just ts) = Right $ Log id' lo sn msg ts
-    toDeid tuple = Left $ (T.pack . show) tuple
+
+toDeid :: DeidTuple -> Either Text Log
+toDeid (id', Just lo, Just sn, Just msg, Just ts) = Right $ Log id' lo sn msg ts
+toDeid tuple = Left $ (T.pack . show) tuple
+
+toFindings :: Either Text (GooglePrivacyDlpV2InspectContentResponse, Log) -> IO [(GooglePrivacyDlpV2Finding, Log)]
+toFindings = \case
+  Right (GooglePrivacyDlpV2InspectContentResponse r, l) -> case r of
+                                                             Just (GooglePrivacyDlpV2InspectResult (Just fs) _) -> pure $ (\f -> (f, l)) <$> fs
+                                                             Just (GooglePrivacyDlpV2InspectResult Nothing _)   -> pure []
+                                                             Nothing                                            -> pure []
+  Left e' -> putStrLn (show e') >> pure []
+
+select :: A.Key -> Value -> Maybe Text
+select k o =  o ^? A.key k . _String
