@@ -1,3 +1,6 @@
+{-# language OverloadedRecordDot #-}
+{-# language DuplicateRecordFields #-}
+{-# language NoFieldSelectors #-}
 module Main where
 
 import Control.Lens ((^?), (^.))
@@ -8,7 +11,7 @@ import Data.Function ((&))
 import Data.Maybe (fromMaybe)
 import Data.Text as T
 import Database.Bloodhound hiding (key)
-import Gogol.Types (AccessToken(..))
+import Gogol.DLP.Types
 import Model.Deid
 import Model.Elastic
 import Prelude as P
@@ -24,11 +27,11 @@ type DeidTuple = ( DocId
 main :: IO ()
 main = do
   let s = server "localhost" 9200
-      token = AccessToken "ya29.c.b0AXv0zTNfAWDu2YZ12C5u13hZbe1tokIaFGm_SVAjCduOHjeiRmjsj23utFomLovCsAsvw4O4tbOO9fHZuynEOiC1rdDUpbGLUcx7RcN-rCNiJ56ioFd7kIuyj5fRR0siHmpuSkAFwYOFAIbdf5Xr_g-Bl6nK2R81Er5uUueBkWUeY3y-EoIeWUp_TXI3xUFr4L_xEFYi6yLaEY3LrO44Kzq96VWw9g2QWwle2WjTWTI"
+      docs = 99
   is <- currentIndexes s
   S.fromList is
     & S.mapM (\i -> print i >> pure i)
-    & S.mapM (\i -> documents s i 0 3)
+    & S.mapM (\i -> documents s i 0 docs)
     & S.map rights
     & S.filter (not . P.null)
     & S.concatMap S.fromFoldable -- transform stream of lists to stream of elements
@@ -46,14 +49,49 @@ main = do
             )
     & S.map toDeid
     & S.mapM (\case
-                 Right l -> do
-                   r <- inspectContent (l ^. message) "projects/lpgprj-gss-p-ctrlog-gl-01/locations/us-east1" token
-                   pure $ Right (r, l)
-                 Left e  -> pure $ Left e
+                 Right l -> if (l ^. message) /= ""
+                            then do
+                              r <- inspectContent (l ^. message) "projects/lpgprj-gss-p-ctrlog-gl-01/locations/us-east1"
+                              pure $ Right (r, l)
+                            else
+                              pure $ Left (T.pack . show $ l)
+                 Left e -> pure $ Left e
              )
+    & S.mapM (\case
+                 Right (GooglePrivacyDlpV2InspectContentResponse r, l) ->
+                   case r of
+                     Just (GooglePrivacyDlpV2InspectResult (Just fs) _) -> pure $ (\f -> (f, l)) <$> fs
+                     Just (GooglePrivacyDlpV2InspectResult Nothing _)   -> pure []
+                     Nothing -> pure []
+                 Left e -> putStrLn (show e) >> pure []
+             )
+    & S.filter (not . P.null)
+    & S.concatMap S.fromFoldable
+    & S.map (\(f, Log id' lpo sn _ t) -> ( id'
+                                         , lpo
+                                         , sn
+                                         , f.quote
+                                         , f.infoType
+                                         , f.likelihood
+                                         , t
+                                         , f
+                                         )
+            )
+    & S.map (\(id', lpo, sn, q, it, l, t, f) -> ( id'
+                                                , lpo
+                                                , sn
+                                                , q
+                                                , case it of
+                                                    Just it' -> it'.name
+                                                    Nothing  -> Nothing
+                                                , l
+                                                , t
+                                                , f
+                                                )
+            )
     & S.mapM print
     & S.drain
   where
     toDeid :: DeidTuple -> Either Text Log
     toDeid (id', Just lo, Just sn, Just msg, Just ts) = Right $ Log id' lo sn msg ts
-    toDeid tuple = Left $ "error: " <> (T.pack . show $ tuple)
+    toDeid tuple = Left $ (T.pack . show) tuple

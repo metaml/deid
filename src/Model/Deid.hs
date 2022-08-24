@@ -23,10 +23,10 @@ makeLenses ''Log
 type Message = Text
 type Parent = Text
 
-inspectContent :: Message -> Parent -> AccessToken -> IO (Rs DLPProjectsLocationsContentInspect)
-inspectContent msg par (AccessToken tok) = do
+inspectContent :: Message -> Parent -> IO (Rs DLPProjectsLocationsContentInspect)
+inspectContent msg par = do
   let p = inspectContentReq msg
-      r = (newDLPProjectsLocationsContentInspect par p) { accessToken = Just tok } :: DLPProjectsLocationsContentInspect
+      r = newDLPProjectsLocationsContentInspect par p
       ps = Proxy :: Proxy (Scopes DLPProjectsLocationsContentInspect)
   send' r ps
 
@@ -39,14 +39,13 @@ inspectContentReq v = newGooglePrivacyDlpV2InspectContentRequest { item = Just i
         c = newGooglePrivacyDlpV2InspectConfig { infoTypes = Just its
                                                , minLikelihood = Just GooglePrivacyDlpV2InspectConfig_MinLikelihood_Likely
                                                , excludeInfoTypes = Just False
+                                               , includeQuote = Just True
                                                } :: GooglePrivacyDlpV2InspectConfig
         its = [ newGooglePrivacyDlpV2InfoType { name = Just "AGE" }                :: GooglePrivacyDlpV2InfoType
               , newGooglePrivacyDlpV2InfoType { name = Just "CREDIT_CARD_NUMBER" } :: GooglePrivacyDlpV2InfoType
               , newGooglePrivacyDlpV2InfoType { name = Just "DATE_OF_BIRTH" }      :: GooglePrivacyDlpV2InfoType
-              , newGooglePrivacyDlpV2InfoType { name = Just "DOMAIN_NAME" }        :: GooglePrivacyDlpV2InfoType
               , newGooglePrivacyDlpV2InfoType { name = Just "EMAIL_ADDRESS" }      :: GooglePrivacyDlpV2InfoType
               , newGooglePrivacyDlpV2InfoType { name = Just "GENDER" }             :: GooglePrivacyDlpV2InfoType
-              , newGooglePrivacyDlpV2InfoType { name = Just "GENERIC_ID" }         :: GooglePrivacyDlpV2InfoType
               , newGooglePrivacyDlpV2InfoType { name = Just "PASSPORT" }           :: GooglePrivacyDlpV2InfoType
               , newGooglePrivacyDlpV2InfoType { name = Just "PHONE_NUMBER" }       :: GooglePrivacyDlpV2InfoType
               , newGooglePrivacyDlpV2InfoType { name = Just "STREET_ADDRESS" }     :: GooglePrivacyDlpV2InfoType
