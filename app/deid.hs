@@ -30,7 +30,7 @@ type DeidTuple = ( DocId
 main :: IO ()
 main = do
   let s = server "localhost" 9200
-      docs = 99
+      docs = 3
   is <- currentIndexes s
   S.fromList is
     & S.mapM (\i -> print i >> pure i)
@@ -49,27 +49,29 @@ main = do
     & S.mapM toFindings
     & S.filter (not . P.null)
     & S.concatMap S.fromFoldable
-    & S.map (\(f, l) -> (f.quote, f.infoType, f.likelihood, l))
-    & S.filter (\(q, _, _, _) -> isJust q)
-    & S.map (\(q, i, l, log') -> (fromJust q, fromJust i, fromJust l, log'))
-    & S.map (\(q, i, l, log') -> log' & quote .~ Just q
-                                      & infoType .~ i.name
-                                      & likelihood .~ Just l.fromGooglePrivacyDlpV2Finding_Likelihood
+    & S.map (\(f, l) -> (f.quote, f.infoType, f.likelihood, f.location, l))
+    & S.filter (\(q, _, _, _, _) -> isJust q)
+    & S.map (\(q, i, l, loc, log') -> (fromJust q, fromJust i, fromJust l, fromJust loc, log'))
+    & S.map (\(q, i, l, loc, log') -> log' & quote .~ Just q
+                                           & infoType .~ i.name
+                                           & likelihood .~ Just l.fromGooglePrivacyDlpV2Finding_Likelihood
+                                           & quoteRange .~ loc.codepointRange
             )
     & S.mapM print
     & S.drain
 
 toDeid :: DeidTuple -> Either Text Log
-toDeid (id', Just lo, Just sn, Just msg, Just t) = Right $ Log id' lo sn msg t Nothing Nothing Nothing
+toDeid (id', Just lo, Just sn, Just msg, Just t) = Right $ Log id' lo sn msg t Nothing Nothing Nothing Nothing
 toDeid tuple = Left $ (T.pack . show) tuple
 
 toFindings :: Either Text (GooglePrivacyDlpV2InspectContentResponse, Log) -> IO [(GooglePrivacyDlpV2Finding, Log)]
 toFindings = \case
-  Right (GooglePrivacyDlpV2InspectContentResponse r, l) -> case r of
-                                                             Just (GooglePrivacyDlpV2InspectResult (Just fs) _) -> pure $ (\f -> (f, l)) <$> fs
-                                                             Just (GooglePrivacyDlpV2InspectResult Nothing _)   -> pure []
-                                                             Nothing                                            -> pure []
-  Left e' -> putStrLn (show e') >> pure []
+  Right (GooglePrivacyDlpV2InspectContentResponse r, l) ->
+    case r of
+      Just (GooglePrivacyDlpV2InspectResult (Just fs) _) -> pure $ (\f -> (f, l)) <$> fs
+      Just (GooglePrivacyDlpV2InspectResult Nothing _)   -> pure []
+      Nothing                                            -> pure []
+  Left e' -> print e' >> pure []
 
 select :: A.Key -> Value -> Maybe Text
 select k o =  o ^? A.key k . _String
