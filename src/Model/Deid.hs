@@ -15,8 +15,12 @@ data Log = Log { _docId :: DocId
                , _serviceName :: Text
                , _message :: Text
                , _timestamp :: Text
+               , _quote :: Maybe Text
+               , _infoType :: Maybe Text
+               , _likelihood :: Maybe Text
                }
          deriving (Generic, Show, ToJSON, FromJSON)
+
 makeLenses ''Log
 
 type Message = Text

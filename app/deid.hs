@@ -1,12 +1,12 @@
 module Main where
 
-import Control.Lens ((^?))
+import Control.Lens ((^?), (.~))
 import Data.Aeson.Key as A
 import Data.Aeson.Lens as A
 import Data.Aeson.Types (Value, emptyObject)
 import Data.Either
 import Data.Function ((&))
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromJust, fromMaybe, isJust)
 import Data.Text as T
 import Database.Bloodhound hiding (key)
 import Gogol.DLP.Types
@@ -49,20 +49,18 @@ main = do
     & S.mapM toFindings
     & S.filter (not . P.null)
     & S.concatMap S.fromFoldable
-    & S.map (\(f, Log id' lo sn _ t) -> ( id'
-                                        , lo
-                                        , sn
-                                        , f.quote
-                                        , f.infoType
-                                        , f.likelihood
-                                        , t
-                                        )
+    & S.map (\(f, l) -> (f.quote, f.infoType, f.likelihood, l))
+    & S.filter (\(q, _, _, _) -> isJust q)
+    & S.map (\(q, i, l, log') -> (fromJust q, fromJust i, fromJust l, log'))
+    & S.map (\(q, i, l, log') -> log' & quote .~ Just q
+                                      & infoType .~ i.name
+                                      & likelihood .~ Just l.fromGooglePrivacyDlpV2Finding_Likelihood
             )
     & S.mapM print
     & S.drain
 
 toDeid :: DeidTuple -> Either Text Log
-toDeid (id', Just lo, Just sn, Just msg, Just ts) = Right $ Log id' lo sn msg ts
+toDeid (id', Just lo, Just sn, Just msg, Just t) = Right $ Log id' lo sn msg t Nothing Nothing Nothing
 toDeid tuple = Left $ (T.pack . show) tuple
 
 toFindings :: Either Text (GooglePrivacyDlpV2InspectContentResponse, Log) -> IO [(GooglePrivacyDlpV2Finding, Log)]
