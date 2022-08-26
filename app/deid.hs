@@ -52,10 +52,18 @@ main = do
     & S.map (\(f, l) -> (f.quote, f.infoType, f.likelihood, f.location, l))
     & S.filter (\(q, _, _, _, _) -> isJust q)
     & S.map (\(q, i, l, loc, log') -> (fromJust q, fromJust i, fromJust l, fromJust loc, log'))
-    & S.map (\(q, i, l, loc, log') -> log' & quote .~ Just q
-                                           & infoType .~ i.name
-                                           & likelihood .~ Just l.fromGooglePrivacyDlpV2Finding_Likelihood
-                                           & quoteRange .~ loc.codepointRange
+    & S.map (\(q, i, l, loc, log') -> ( loc.codepointRange
+                                      , log' & quote .~ Just q
+                                             & infoType .~ i.name
+                                             & likelihood .~ Just l.fromGooglePrivacyDlpV2Finding_Likelihood
+                                      )
+            )
+    & S.map (\(cpr, log') -> case cpr of
+                               Just cpr' -> log' & (quoteRange .~ if isJust cpr'.start && isJust cpr'.end
+                                                                  then Just (fromJust cpr'.start, fromJust cpr'.end)
+                                                                  else Nothing
+                                                   )
+                               Nothing -> log' & quoteRange .~ Nothing
             )
     & S.mapM print
     & S.drain

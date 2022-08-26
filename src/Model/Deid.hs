@@ -18,7 +18,7 @@ data Log = Log { _docId :: DocId
                , _quote :: Maybe Text
                , _infoType :: Maybe Text
                , _likelihood :: Maybe Text
-               , _quoteRange :: Maybe GooglePrivacyDlpV2Range
+               , _quoteRange :: Maybe (Int64, Int64)
                }
          deriving (Generic, Show, ToJSON, FromJSON)
 
