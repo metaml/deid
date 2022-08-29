@@ -18,7 +18,7 @@ data Log = Log { _docId :: DocId
                , _quote :: Maybe Text
                , _infoType :: Maybe Text
                , _likelihood :: Maybe Text
-               , _quoteRange :: Maybe (Int64, Int64)
+               , _quoteRange :: Maybe (Int, Int)
                }
          deriving (Generic, Show, ToJSON, FromJSON)
 
