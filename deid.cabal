@@ -53,6 +53,7 @@ library
                     , aeson-optics
                     , bloodhound
                     , bytestring
+                    , cassava
                     , containers
                     , either
                     , exceptions
@@ -87,6 +88,7 @@ executable deid
   build-depends: base ^>= 4.16.1.0
                , aeson
                , bloodhound
+               , cassava
                , deid
                , gogol-core
                , gogol-dlp

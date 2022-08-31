@@ -2,13 +2,23 @@ module Model.Deid where
 
 import Control.Lens
 import Data.Aeson
-import Data.Text
+import Data.Csv (ToField, ToRecord, record, toField, toRecord)
+import Data.Text as T
+import Data.Text.Encoding (encodeUtf8)
 import Database.Bloodhound hiding (key)
 import GHC.Generics
 import Gcp.Send (send')
 import Gogol.DLP
 import Gogol.DLP.Types
 import Gogol.Prelude
+
+type Message = Text
+type Parent = Text
+type LpOwner = Text
+type ServiceName = Text
+type Quote = Text
+type Timestamp = Text
+
 
 data Log = Log { _docId :: DocId
                , _lpOwner :: Text
@@ -20,12 +30,23 @@ data Log = Log { _docId :: DocId
                , _likelihood :: Maybe Text
                , _quoteRange :: Maybe (Int, Int)
                }
-         deriving (Generic, Show, ToJSON, FromJSON)
+         deriving (Eq, Generic, Show, ToJSON, FromJSON)
 
 makeLenses ''Log
 
-type Message = Text
-type Parent = Text
+instance ToRecord Log where
+  toRecord l = record [ toField l._docId
+                      , toField l._lpOwner
+                      , toField l._serviceName
+                      , toField l._timestamp
+                      , toField l._quote
+                      , toField l._infoType
+                      , toField l._likelihood
+                      , toField $ "[" <> (sample l) <> "]"
+                      ]
+
+instance ToField DocId where
+  toField (DocId id') = encodeUtf8 id'
 
 inspectLog :: Either Text Log -> IO (Either Text (GooglePrivacyDlpV2InspectContentResponse, Log))
 inspectLog e = case e of
@@ -75,3 +96,18 @@ inspectContentReq v = newGooglePrivacyDlpV2InspectContentRequest { item = Just i
               , newGooglePrivacyDlpV2InfoType { name = Just "WEAK_PASSWORD_HASH" } :: GooglePrivacyDlpV2InfoType
               , newGooglePrivacyDlpV2InfoType { name = Just "XSRF_TOKEN" }         :: GooglePrivacyDlpV2InfoType
               ]
+
+sample :: Log -> Text
+sample l = let q = quoteRange' l._quoteRange l._message l._quote
+           in case q of
+                Just qr -> T.take (snd qr - fst qr) (T.drop (fst qr) l._message)
+                Nothing -> ""
+
+quoteRange' :: Maybe (Int, Int) -> Text -> Maybe Quote -> Maybe (Int, Int)
+quoteRange' Nothing _ _ = Nothing
+quoteRange' (Just (s, e)) msg (Just q) = let mLen = T.length msg
+                                             qLen = max 11 (T.length q)
+                                         in Just $ ((max (s - qLen) 0), (min (e + qLen) mLen))
+quoteRange' (Just (s, e)) msg Nothing  = let mLen = T.length msg
+                                             qLen = 0
+                                         in Just $ ((max (s - qLen) 0), (min (e + qLen) mLen))

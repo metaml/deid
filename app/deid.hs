@@ -4,27 +4,25 @@ import Control.Lens ((^?), (.~))
 import Data.Aeson.Key as A
 import Data.Aeson.Lens as A
 import Data.Aeson.Types (Value, emptyObject)
+import Data.Csv
 import Data.Either
 import Data.Function ((&))
 import Data.Maybe (fromJust, fromMaybe, isJust)
 import Data.Text as T
+import Data.Text.Lazy.Encoding as T
+import Data.Text.IO as T
 import Database.Bloodhound hiding (key)
 import Gogol.DLP.Types
 import Model.Deid
 import Model.Elastic
 import Prelude as P
 import Streamly.Prelude as S
-
-type LpOwner = Text
-type ServiceName = Text
-type LogMessage = Text
-type Quote = Text
-type Timestamp = Text
+import qualified Data.Text.Lazy as L
 
 type DeidTuple = ( DocId
                  , Maybe LpOwner
                  , Maybe ServiceName
-                 , Maybe LogMessage
+                 , Maybe Message
                  , Maybe Timestamp
                  )
 
@@ -56,7 +54,7 @@ main = do
     & S.map (\(q, i, l, loc, log') -> ( loc.codepointRange
                                       , log' & quote .~ Just q
                                              & infoType .~ i.name
-                                             & likelihood .~ Just l.fromGooglePrivacyDlpV2Finding_Likelihood
+                                             & likelihood .~ Just (strip l.fromGooglePrivacyDlpV2Finding_Likelihood)
                                       )
             )
     & S.map (\(cpr, log') -> case cpr of
@@ -68,11 +66,7 @@ main = do
                                                    )
                                Nothing -> log' & quoteRange .~ Nothing
             )
-    & S.map (\l -> case (l._quoteRange) of
-                     Just qr -> l & quoteRange .~ (Just (quoteRange' qr l._message l._quote))
-                     Nothing -> l
-            )
-    & S.mapM print
+    & S.mapM (\l -> T.putStrLn $ (L.toStrict . T.decodeUtf8 . encode) [l])
     & S.drain
 
 toDeid :: DeidTuple -> Either Text Log
@@ -86,15 +80,9 @@ toFindings = \case
       Just (GooglePrivacyDlpV2InspectResult (Just fs) _) -> pure $ (\f -> (f, l)) <$> fs
       Just (GooglePrivacyDlpV2InspectResult Nothing _)   -> pure []
       Nothing                                            -> pure []
-  Left e' -> print e' >> pure []
+  Left e' -> do
+    -- print e'
+    pure []
 
 select :: A.Key -> Value -> Maybe Text
 select k o =  o ^? A.key k . _String
-
-quoteRange' :: (Int, Int) -> LogMessage -> Maybe Quote -> (Int, Int)
-quoteRange' (s, e) msg (Just q) = let mLen = T.length msg
-                                      qLen = T.length q
-                                  in (fromIntegral (max (s - qLen) 0), fromIntegral (min (e + qLen) mLen))
-quoteRange' (s, e) msg Nothing = let mLen = T.length msg
-                                     qLen = 0
-                                 in (fromIntegral (max (s - qLen) 0), fromIntegral (min (e + qLen) mLen))
