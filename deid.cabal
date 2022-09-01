@@ -8,7 +8,8 @@ category:             application
 extra-source-files:   README.md
 
 library
-  exposed-modules:    Gcp.Send
+  exposed-modules:    Etc.Deid
+                    , Gcp.Send
                     , Model.BigQuery
                     , Model.Deid
                     , Model.Elastic

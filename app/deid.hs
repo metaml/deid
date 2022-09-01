@@ -18,6 +18,7 @@ import Model.Elastic
 import Prelude as P
 import Streamly.Prelude as S
 import qualified Data.Text.Lazy as L
+import qualified Etc.Deid as Cli
 
 type DeidTuple = ( DocId
                  , Maybe LpOwner
@@ -28,8 +29,9 @@ type DeidTuple = ( DocId
 
 main :: IO ()
 main = do
-  let s = server "localhost" 9200
-      docs = 3
+  arg' <- Cli.arg
+  let s = server arg'.server arg'.port
+      docs = arg'.results
   is <- currentIndexes s
   S.fromList is
     & S.mapM (\i -> print i >> pure i)
