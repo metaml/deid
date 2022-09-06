@@ -1,6 +1,7 @@
 bin/**
 dist-newstyle
 elk
+outputs
 result
 tmp/**
 .DS_Store
