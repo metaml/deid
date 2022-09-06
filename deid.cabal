@@ -89,8 +89,10 @@ executable deid
   build-depends: base ^>= 4.16.1.0
                , aeson
                , bloodhound
+               , containers
                , cassava
                , deid
+               , gogol
                , gogol-core
                , gogol-dlp
                , lens

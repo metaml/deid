@@ -26,10 +26,9 @@ arg :: IO Arg
 arg = execParser parser
 
 parser :: ParserInfo Arg
-parser = info (parseArg <**> helper)
-              (fullDesc <> header "deid"
-                        <> progDesc "detect PII data in ES"
-              )
+parser = info (parseArg <**> helper) (fullDesc <> header "deid"
+                                               <> progDesc "detect PII data in ES"
+                                     )
 
 parseArg :: Parser Arg
 parseArg = Arg <$> strOption  ( long "server"

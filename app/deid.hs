@@ -12,13 +12,17 @@ import Data.Text as T
 import Data.Text.Lazy.Encoding as T
 import Data.Text.IO as T
 import Database.Bloodhound hiding (key)
+import Etc.Deid
 import Gogol.DLP.Types
 import Model.Deid
-import Model.Elastic
+import Model.Elastic as Es
 import Prelude as P
 import Streamly.Prelude as S
+import System.IO (stderr)
+import qualified Data.Set as Set
 import qualified Data.Text.Lazy as L
 import qualified Etc.Deid as Cli
+import qualified Gogol as G
 
 type DeidTuple = ( DocId
                  , Maybe LpOwner
@@ -30,12 +34,16 @@ type DeidTuple = ( DocId
 main :: IO ()
 main = do
   arg' <- Cli.arg
-  let s = server arg'.server arg'.port
-      docs = arg'.results
-  is <- currentIndexes s
-  S.fromList is
+  let logLevel = if (Debug `Set.member` arg'.verbosity)
+                 then G.Debug
+                 else G.Info
+  let esUrl = Es.server arg'.server arg'.port
+  indices <- case arg'.query of
+               Cli.Query Cli.IndicesAll    -> currentIndexes esUrl
+               Cli.Query (Cli.Indices ixs) -> pure $ (IndexName <$> Set.toList ixs)
+  S.fromList indices
     & S.mapM (\i -> print i >> pure i)
-    & S.mapM (\i -> documents s i 0 docs)
+    & S.mapM (\i -> documents esUrl i 0 arg'.results)
     & S.map rights
     & S.filter (not . P.null)
     & S.concatMap S.fromFoldable -- transform stream of lists to stream of elements
@@ -47,7 +55,7 @@ main = do
     & S.map (\(id', o) -> (id', select "lp_owner" o, select "service_name" o, select "message" o, select "@timestamp" o))
     & S.map toDeid
     & S.mapM inspectLog
-    & S.mapM toFindings
+    & S.mapM (toFindings' logLevel)
     & S.filter (not . P.null)
     & S.concatMap S.fromFoldable
     & S.map (\(f, l) -> (f.quote, f.infoType, f.likelihood, f.location, l))
@@ -75,16 +83,24 @@ toDeid :: DeidTuple -> Either Text Log
 toDeid (id', Just lo, Just sn, Just msg, Just t) = Right $ Log id' lo sn msg t Nothing Nothing Nothing Nothing
 toDeid tuple = Left $ (T.pack . show) tuple
 
-toFindings :: Either Text (GooglePrivacyDlpV2InspectContentResponse, Log) -> IO [(GooglePrivacyDlpV2Finding, Log)]
+toFindings' :: G.LogLevel -> Either Text (GooglePrivacyDlpV2InspectContentResponse, Log) -> IO [(GooglePrivacyDlpV2Finding, Log)]
+toFindings' l e = case (toFindings e) of
+                    Right ps -> pure ps
+                    Left e'   -> if (l > G.Info)
+                                 then do
+                                   hPutStrLn stderr e'
+                                   pure []
+                                 else
+                                   pure []
+
+toFindings :: Either Text (GooglePrivacyDlpV2InspectContentResponse, Log) -> Either Text [(GooglePrivacyDlpV2Finding, Log)]
 toFindings = \case
   Right (GooglePrivacyDlpV2InspectContentResponse r, l) ->
     case r of
-      Just (GooglePrivacyDlpV2InspectResult (Just fs) _) -> pure $ (\f -> (f, l)) <$> fs
-      Just (GooglePrivacyDlpV2InspectResult Nothing _)   -> pure []
-      Nothing                                            -> pure []
-  Left e' -> do
-    -- print e'
-    pure []
+      Just (GooglePrivacyDlpV2InspectResult (Just fs) _) -> Right $ (\f -> (f, l)) <$> fs
+      Just (GooglePrivacyDlpV2InspectResult Nothing _)   -> Right []
+      Nothing                                            -> Right []
+  Left e' -> Left e'
 
 select :: A.Key -> Value -> Maybe Text
 select k o =  o ^? A.key k . _String

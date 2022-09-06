@@ -20,7 +20,7 @@ install: out ?= .
 install: # install binary
 	mkdir -p $(out)/bin
 	cabal build --verbose
-	cabal install --install-method=copy --installdir=$(out)/bin
+	cabal install --overwrite-policy=always --install-method=copy --installdir=$(out)/bin
 
 dev: export NIXPKGS_ALLOW_BROKEN = 1
 dev: ## nix develop
