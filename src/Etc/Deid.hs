@@ -8,7 +8,7 @@ import Options.Applicative
 data Arg = Arg { server :: Text
                , port :: Int
                , query :: Query
-               , results :: Int
+               , maxResults :: Int
                , verbose :: Bool
                , debug :: Bool
                }
@@ -32,41 +32,41 @@ parser = info (parseArg <**> helper) (fullDesc <> header "deid"
                                      )
 
 parseArg :: Parser Arg
-parseArg = Arg <$> strOption  ( long "server"
-                                <> value "localhost"
-                                <> showDefault
-                                <> short 's'
-                                <> metavar "SERVER"
-                                <> help "ES server, e.g.: slor-esc100"
-                              )
+parseArg = Arg <$> strOption (long "server"
+                              <> short 's'
+                              <> value "localhost"
+                              <> showDefault
+                              <> metavar "SERVER"
+                              <> help "ESC server"
+                             )
                <*> option auto ( long "port"
+                                 <> short 'p'
                                  <> value 9200
                                  <> showDefault
-                                 <> short 'p'
                                  <> metavar "PORT"
-                                 <> help "ES port, e.g.: 9200"
+                                 <> help "ES port"
                                )
                <*> option parseQuery ( long "indices"
+                                       <> short 'i'
                                        <> value (Query IndicesAll)
                                        <> showDefault
-                                       <> short 'i'
                                        <> metavar "INDICES"
                                        <> help "ES comma separated indices"
                                      )
                <*> option auto ( long "max"
+                                 <> short 'm'
                                  <> value 3
                                  <> showDefault
-                                 <> short 'm'
                                  <> metavar "MAXRESULTS"
-                                 <> help "max number of results from each index"
+                                 <> help "max results from each index"
                                )
                <*> switch ( long "verbose"
                             <> short 'v'
-                            <> help "verbose (to stderr)"
+                            <> help "verbose (stderr)"
                           )
                <*> switch ( long "debug"
                             <> short 'd'
-                            <> help "debug (to stderr and very noisy)"
+                            <> help "debug (stderr; very noisy)"
                           )
   where parseQuery :: ReadM Query
         parseQuery = eitherReader $ \s -> let is = splitOn "," (pack s)

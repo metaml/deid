@@ -40,7 +40,7 @@ main = do
                Cli.Query (Cli.Indices ixs) -> pure $ (IndexName <$> Set.toList ixs)
   S.fromList indices
     & S.trace (\(IndexName i) -> if arg'.verbose then (hPutStrLn stderr i) else pure ())
-    & S.mapM (\i -> documents esUrl i 0 arg'.results)
+    & S.mapM (\i -> documents esUrl i 0 arg'.maxResults)
     & S.map rights
     & S.filter (not . P.null)
     & S.concatMap S.fromFoldable -- transform a stream of lists to a stream of elements
@@ -51,7 +51,7 @@ main = do
     & S.map (\(id', o) -> (id', fromMaybe emptyObject o))
     & S.map (\(id', o) -> (id', select "lp_owner" o, select "service_name" o, select "message" o, select "@timestamp" o))
     & S.map toDeid
-    & S.mapM (if arg'.debug then inspectLog' else inspectLog)
+    & S.mapM (if arg'.debug then inspectLog' else inspectLog) -- call GCP
     & S.mapM (\e -> case (toFindings e) of
                       Right ps -> pure ps
                       Left e'  -> when arg'.debug (hPutStrLn stderr e') >> pure []
@@ -76,21 +76,20 @@ main = do
                                                    )
                                Nothing -> log' & quoteRange .~ Nothing
             )
-    & S.mapM (\l -> T.putStrLn $ (L.toStrict . T.decodeUtf8 . encode) [l])
+    & S.mapM (\l -> T.putStr $ (L.toStrict . T.decodeUtf8 . encode) [l])
     & S.drain
+  where toDeid :: DeidTuple -> Either Text Log
+        toDeid (id', Just lo, Just sn, Just msg, Just t) = Right $ Log id' lo sn msg t Nothing Nothing Nothing Nothing
+        toDeid tuple = Left $ (T.pack . show) tuple
 
-toDeid :: DeidTuple -> Either Text Log
-toDeid (id', Just lo, Just sn, Just msg, Just t) = Right $ Log id' lo sn msg t Nothing Nothing Nothing Nothing
-toDeid tuple = Left $ (T.pack . show) tuple
+        toFindings :: Either Text (GooglePrivacyDlpV2InspectContentResponse, Log) -> Either Text [(GooglePrivacyDlpV2Finding, Log)]
+        toFindings = \case
+          Right (GooglePrivacyDlpV2InspectContentResponse r, l) ->
+            case r of
+              Just (GooglePrivacyDlpV2InspectResult (Just fs) _) -> Right $ (\f -> (f, l)) <$> fs
+              Just (GooglePrivacyDlpV2InspectResult Nothing _)   -> Right []
+              Nothing                                            -> Right []
+          Left e' -> Left e'
 
-toFindings :: Either Text (GooglePrivacyDlpV2InspectContentResponse, Log) -> Either Text [(GooglePrivacyDlpV2Finding, Log)]
-toFindings = \case
-  Right (GooglePrivacyDlpV2InspectContentResponse r, l) ->
-    case r of
-      Just (GooglePrivacyDlpV2InspectResult (Just fs) _) -> Right $ (\f -> (f, l)) <$> fs
-      Just (GooglePrivacyDlpV2InspectResult Nothing _)   -> Right []
-      Nothing                                            -> Right []
-  Left e' -> Left e'
-
-select :: A.Key -> Value -> Maybe Text
-select k o =  o ^? A.key k . _String
+        select :: A.Key -> Value -> Maybe Text
+        select k o =  o ^? A.key k . _String
