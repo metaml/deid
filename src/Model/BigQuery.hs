@@ -2,7 +2,7 @@ module Model.BigQuery where
 
 import Data.Aeson (Object)
 import Data.Aeson.KeyMap (toHashMapText)
-import Gcp.Send (send')
+import Gcp.Send (sendGcp)
 import Gogol.BigQuery
 import Gogol.Prelude
 
@@ -20,7 +20,7 @@ tableInsert' :: DataSetId -> TableDataInsertAllRequest -> ProjectId -> TableId -
 tableInsert' did irq pid tid = do
   let r = newBigQueryTabledataInsertAll did irq pid tid
       p = Proxy :: Proxy '[Bigquery'FullControl]
-  send' r p
+  sendGcp r p
 
 mkTableDataInsertAllRequest :: [TableDataInsertAllRequest_RowsItem] -> TableDataInsertAllRequest
 mkTableDataInsertAllRequest rs = newTableDataInsertAllRequest { rows = Just rs }
@@ -29,10 +29,10 @@ tablesList :: DataSetId -> ProjectId -> IO (Rs BigQueryTablesList)
 tablesList did pid = do
   let r = newBigQueryTablesList did pid
       p = Proxy :: Proxy '[Bigquery'FullControl]
-  send' r p
+  sendGcp r p
 
 tablesGet :: DataSetId -> ProjectId -> TableId -> IO (Rs BigQueryTablesGet)
 tablesGet did pid tid = do
   let r = newBigQueryTablesGet did pid tid
       p = Proxy :: Proxy '[Bigquery'FullControl]
-  send' r p
+  sendGcp r p

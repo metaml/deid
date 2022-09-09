@@ -62,11 +62,11 @@ parseArg = Arg <$> strOption  ( long "server"
                                )
                <*> switch ( long "verbose"
                             <> short 'v'
-                            <> help "verbose mode"
+                            <> help "verbose (to stderr)"
                           )
                <*> switch ( long "debug"
                             <> short 'd'
-                            <> help "debug mode"
+                            <> help "debug (to stderr and very noisy)"
                           )
   where parseQuery :: ReadM Query
         parseQuery = eitherReader $ \s -> let is = splitOn "," (pack s)

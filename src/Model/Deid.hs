@@ -7,7 +7,8 @@ import Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
 import Database.Bloodhound hiding (key)
 import GHC.Generics
-import Gcp.Send (send')
+import Gcp.Send
+import Gogol (Logger)
 import Gogol.DLP
 import Gogol.DLP.Types
 import Gogol.Prelude
@@ -49,21 +50,27 @@ instance ToField DocId where
   toField (DocId id') = encodeUtf8 id'
 
 inspectLog :: Either Text Log -> IO (Either Text (GooglePrivacyDlpV2InspectContentResponse, Log))
-inspectLog e = case e of
-                 Right l -> if (l ^. message) /= ""
-                            then do
-                              r <- inspectContent (l ^. message) "projects/lpgprj-gss-p-ctrlog-gl-01/locations/us-east1"
-                              pure $ Right (r, l)
-                            else
-                              pure $ Left (pack . show $ l)
-                 Left e' -> pure $ Left e'
+inspectLog e = do
+  logger <- infoLogger
+  inspectLogWithLogger logger e
 
-inspectContent :: Message -> Parent -> IO (Rs DLPProjectsLocationsContentInspect)
-inspectContent msg par = do
-  let p = inspectContentReq msg
-      r = newDLPProjectsLocationsContentInspect par p
-      ps = Proxy :: Proxy (Scopes DLPProjectsLocationsContentInspect)
-  send' r ps
+inspectLog' :: Either Text Log -> IO (Either Text (GooglePrivacyDlpV2InspectContentResponse, Log))
+inspectLog' e = do
+  logger <- debugLogger
+  inspectLogWithLogger logger e
+
+inspectLogWithLogger :: Logger -> Either Text Log -> IO (Either Text (GooglePrivacyDlpV2InspectContentResponse, Log))
+inspectLogWithLogger logger = \case
+  Right l -> if T.null l._message
+             then pure $ Left $ pack . show $ l
+             else do
+               let msg = inspectContentReq (l ^. message)
+                   parent = "projects/lpgprj-gss-p-ctrlog-gl-01/locations/us-east1"
+                   inspection = newDLPProjectsLocationsContentInspect parent msg
+                   scope = Proxy :: Proxy (Scopes DLPProjectsLocationsContentInspect)
+               r <- sendGcpWithLogger logger inspection scope
+               pure $ Right (r, l)
+  Left e' -> pure $ Left e'
 
 -- NB: odd record update error that requires a type signature
 inspectContentReq :: Text -> GooglePrivacyDlpV2InspectContentRequest

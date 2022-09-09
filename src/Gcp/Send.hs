@@ -5,16 +5,21 @@ import Gogol
 import Gogol.Prelude
 import System.IO (stderr)
 
-scope :: Proxy '["https://www.googleapis.com/auth/spreadsheets"]
-scope = Proxy
+sendGcp :: AllowRequest a scopes => a -> Proxy scopes -> IO (Rs a)
+sendGcp r s = do
+  l <- infoLogger
+  sendGcpWithLogger l r s
 
-send' :: AllowRequest a scopes => a -> Proxy scopes -> IO (Rs a)
-send' r s = do
-  log' <- newLogger Info stderr
-  env <- newEnv <&> (envLogger .~ log') . (envScopes .~ s)
-  runResourceT $ send env r
-
-sendLog :: AllowRequest a scopes => Logger -> a -> Proxy scopes -> IO (Rs a)
-sendLog l r s = do
+sendGcpWithLogger :: AllowRequest a scopes => Logger -> a -> Proxy scopes -> IO (Rs a)
+sendGcpWithLogger l r s = do
   env <- newEnv <&> (envLogger .~ l) . (envScopes .~ s)
   runResourceT $ send env r
+
+infoLogger :: IO Logger
+infoLogger = newLogger Info stderr
+
+debugLogger :: IO Logger
+debugLogger = newLogger Debug stderr
+
+-- scope :: Proxy '["https://www.googleapis.com/auth/spreadsheets"]
+-- scope = Proxy
