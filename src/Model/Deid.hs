@@ -20,7 +20,6 @@ type ServiceName = Text
 type Quote = Text
 type Timestamp = Text
 
-
 data Log = Log { _docId :: DocId
                , _lpOwner :: Text
                , _serviceName :: Text
@@ -39,11 +38,11 @@ instance ToRecord Log where
   toRecord l = record [ toField l._docId
                       , toField l._lpOwner
                       , toField l._serviceName
-                      , toField l._timestamp
                       , toField l._quote
                       , toField l._infoType
                       , toField l._likelihood
                       , toField $ "[" <> (sample l) <> "]"
+                      , toField l._timestamp
                       ]
 
 instance ToField DocId where
