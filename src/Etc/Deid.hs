@@ -9,7 +9,8 @@ data Arg = Arg { server :: Text
                , port :: Int
                , query :: Query
                , results :: Int
-               , verbosity :: Set Verbosity
+               , verbose :: Bool
+               , debug :: Bool
                }
            deriving (Eq, Generic, Show)
 
@@ -59,22 +60,14 @@ parseArg = Arg <$> strOption  ( long "server"
                                  <> metavar "MAXRESULTS"
                                  <> help "max number of results from each index"
                                )
-               <*> option parseVerbosity ( long "verbose"
-                                           <> value (S.empty)
-                                           <> showDefault
-                                           <> short 'v'
-                                           <> metavar "VERBOSITY"
-                                           <> help ("verbosity modes: " <> show [Debug, Verbose])
-                                         )
+               <*> switch ( long "verbose"
+                            <> short 'v'
+                            <> help "verbose mode"
+                          )
+               <*> switch ( long "debug"
+                            <> short 'd'
+                            <> help "debug mode"
+                          )
   where parseQuery :: ReadM Query
         parseQuery = eitherReader $ \s -> let is = splitOn "," (pack s)
                                           in Right $ Query $ Indices (fromList is)
-        parseVerbosity :: ReadM (Set Verbosity)
-        parseVerbosity = eitherReader $ \s -> let vs = toVerbosity <$> splitOn "," (toLower . pack $ s)
-                                                  vs' = delete Quiet $ fromList vs
-                                              in Right vs'
-        toVerbosity :: Text -> Verbosity
-        toVerbosity s = case s of
-          "verbose" -> Verbose
-          "debug"   -> Debug
-          _         -> Quiet

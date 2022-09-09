@@ -16,13 +16,11 @@ buildc: clean ## build continuously
 	@fswatcher --path . --include "\.hs$$|\.cabal$$" --throttle 31 cabal -- $(OPT) build 2>&1 \
 	| source-highlight --src-lang=haskell --out-format=esc
 
-install: out ?= .
 install: # install binary
-	mkdir -p $(out)/bin
+	mkdir -p bin
 	cabal build --verbose
-	cabal install --overwrite-policy=always --install-method=copy --installdir=$(out)/bin
+	cabal install --overwrite-policy=always --install-method=copy --installdir=bin
 
-dev: export NIXPKGS_ALLOW_BROKEN = 1
 dev: ## nix develop
 	nix develop
 
@@ -40,7 +38,8 @@ clobber: clean ## cleanpq
 	rm -rf tmp/*
 
 # make activate KEY_FILE=... first
-run: export GOOGLE_APPLICATION_CREDENTIALS := /Users/milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-5be472e42700.json
+run: BIN ?= deid
+run: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-5be472e42700.json
 run: ## run BIN, e.g. make run BIN=<binary>
 	cabal $(OPT) run $(BIN) -- $(ARG)
 
