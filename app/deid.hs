@@ -34,11 +34,11 @@ type DeidTuple = ( DocId
 main :: IO ()
 main = do
   arg' <- Cli.arg
-  T.putStrLn $ T.intercalate "," header'
   let esUrl = Es.server arg'.server arg'.port
   indices <- case arg'.query of
                Cli.Query Cli.IndicesAll    -> currentIndexes esUrl
                Cli.Query (Cli.Indices ixs) -> pure $ (IndexName <$> Set.toList ixs)
+  T.putStrLn $ T.intercalate "," header'
   S.fromList indices
     & S.trace (\(IndexName i) -> if arg'.verbose then (hPutStrLn stderr i) else pure ())
     & S.mapM (\i -> documents esUrl i 0 arg'.maxResults)
