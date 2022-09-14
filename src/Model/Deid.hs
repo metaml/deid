@@ -2,7 +2,8 @@ module Model.Deid where
 
 import Control.Lens
 import Data.Aeson
-import Data.Csv (ToField, ToRecord, record, toField, toRecord)
+import Data.Csv (Header, ToField, ToRecord, record, toField, toRecord)
+import Data.Vector as V
 import Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
 import Database.Bloodhound hiding (key)
@@ -47,6 +48,18 @@ instance ToRecord Log where
 
 instance ToField DocId where
   toField (DocId id') = encodeUtf8 id'
+
+-- @todo: this is gross--derive from ToRecord Log
+header' :: [Text]
+header' = [ "doc_id"
+          , "lp_owner"
+          , "service_name"
+          , "quote"
+          , "info_type"
+          , "liklihood"
+          , "quote_context"
+          , "timestamp"
+          ]
 
 inspectLog :: Either Text Log -> IO (Either Text (GooglePrivacyDlpV2InspectContentResponse, Log))
 inspectLog e = do

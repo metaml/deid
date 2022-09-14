@@ -34,6 +34,7 @@ type DeidTuple = ( DocId
 main :: IO ()
 main = do
   arg' <- Cli.arg
+  T.putStrLn $ T.intercalate "," header'
   let esUrl = Es.server arg'.server arg'.port
   indices <- case arg'.query of
                Cli.Query Cli.IndicesAll    -> currentIndexes esUrl
@@ -78,18 +79,19 @@ main = do
             )
     & S.mapM (\l -> T.putStr $ (L.toStrict . T.decodeUtf8 . encode) [l])
     & S.drain
-  where toDeid :: DeidTuple -> Either Text Log
-        toDeid (id', Just lo, Just sn, Just msg, Just t) = Right $ Log id' lo sn msg t Nothing Nothing Nothing Nothing
-        toDeid tuple = Left $ (T.pack . show) tuple
+  where
+    toDeid :: DeidTuple -> Either Text Log
+    toDeid (id', Just lo, Just sn, Just msg, Just t) = Right $ Log id' lo sn msg t Nothing Nothing Nothing Nothing
+    toDeid tuple = Left $ (T.pack . show) tuple
 
-        toFindings :: Either Text (GooglePrivacyDlpV2InspectContentResponse, Log) -> Either Text [(GooglePrivacyDlpV2Finding, Log)]
-        toFindings = \case
-          Right (GooglePrivacyDlpV2InspectContentResponse r, l) ->
-            case r of
-              Just (GooglePrivacyDlpV2InspectResult (Just fs) _) -> Right $ (\f -> (f, l)) <$> fs
-              Just (GooglePrivacyDlpV2InspectResult Nothing _)   -> Right []
-              Nothing                                            -> Right []
-          Left e' -> Left e'
+    toFindings :: Either Text (GooglePrivacyDlpV2InspectContentResponse, Log) -> Either Text [(GooglePrivacyDlpV2Finding, Log)]
+    toFindings = \case
+      Right (GooglePrivacyDlpV2InspectContentResponse r, l) ->
+        case r of
+          Just (GooglePrivacyDlpV2InspectResult (Just fs) _) -> Right $ (\f -> (f, l)) <$> fs
+          Just (GooglePrivacyDlpV2InspectResult Nothing _)   -> Right []
+          Nothing                                            -> Right []
+      Left e' -> Left e'
 
-        select :: A.Key -> Value -> Maybe Text
-        select k o =  o ^? A.key k . _String
+    select :: A.Key -> Value -> Maybe Text
+    select k o =  o ^? A.key k . _String
