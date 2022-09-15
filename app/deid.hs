@@ -8,10 +8,13 @@ import Data.Aeson.Types (Value, emptyObject)
 import Data.Csv
 import Data.Either
 import Data.Function ((&))
+import Data.IORef
 import Data.Maybe (fromJust, fromMaybe, isJust)
 import Data.Text as T
-import Data.Text.Lazy.Encoding as T
 import Data.Text.IO as T
+import Data.Text.Lazy.Encoding as T
+import Data.Text.Lazy.Builder as B
+import Data.Text.Lazy.Builder.Int as B
 import Database.Bloodhound hiding (key)
 import Etc.Deid
 import Gogol.DLP.Types
@@ -38,7 +41,13 @@ main = do
   indices <- case arg'.query of
                Cli.Query Cli.IndicesAll    -> currentIndexes esUrl
                Cli.Query (Cli.Indices ixs) -> pure $ (IndexName <$> Set.toList ixs)
+
+  hitCounter  <- newIORef (0 :: Int)
+  inspectCounter <- newIORef (0 :: Int)
+  deidCounter <- newIORef (0 :: Int)
+
   T.putStrLn $ T.intercalate "," header'
+
   S.fromList indices
     & S.trace (\(IndexName i) -> if arg'.verbose then (hPutStrLn stderr i) else pure ())
     & S.mapM (\i -> documents esUrl i 0 arg'.maxResults)
@@ -48,11 +57,13 @@ main = do
     & S.map searchHits
     & S.map hits
     & S.concatMap S.fromFoldable
+    & S.trace (\_ -> modifyIORef' hitCounter (+1))
     & S.map (\h -> (hitDocId h, hitSource h))
     & S.map (\(id', o) -> (id', fromMaybe emptyObject o))
     & S.map (\(id', o) -> (id', select "lp_owner" o, select "service_name" o, select "message" o, select "@timestamp" o))
     & S.map toDeid
     & S.mapM (if arg'.debug then inspectLog' else inspectLog) -- call GCP
+    & S.trace (\_ -> modifyIORef' inspectCounter (+1))
     & S.mapM (\e -> case (toFindings e) of
                       Right ps -> pure ps
                       Left e'  -> when arg'.debug (hPutStrLn stderr e') >> pure []
@@ -78,7 +89,18 @@ main = do
                                Nothing -> log' & quoteRange .~ Nothing
             )
     & S.mapM (\l -> T.putStr $ (L.toStrict . T.decodeUtf8 . encode) [l])
+    & S.trace (\_ -> modifyIORef' deidCounter (+1))
     & S.drain
+
+  esHits <- readIORef hitCounter
+  gcpInspections <- readIORef inspectCounter
+  deids <- readIORef deidCounter
+
+  T.hPutStrLn stderr $ "indices: " <> (L.toStrict . B.toLazyText) (B.decimal (P.length indices))
+  T.hPutStrLn stderr $ "hits: " <> (L.toStrict . B.toLazyText) (B.decimal esHits)
+  T.hPutStrLn stderr $ "inspections: " <> (L.toStrict . B.toLazyText) (B.decimal gcpInspections)
+  T.hPutStrLn stderr $ "deids: " <> (L.toStrict . B.toLazyText) (B.decimal deids)
+
   where
     toDeid :: DeidTuple -> Either Text Log
     toDeid (id', Just lo, Just sn, Just msg, Just t) = Right $ Log id' lo sn msg t Nothing Nothing Nothing Nothing
