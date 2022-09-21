@@ -37,6 +37,7 @@ type DeidTuple = ( DocId
 main :: IO ()
 main = do
   arg' <- Cli.arg
+
   let esUrl = Es.server arg'.server arg'.port
   indices <- case arg'.query of
                Cli.Query Cli.IndicesAll    -> currentIndexes esUrl
@@ -89,7 +90,7 @@ main = do
                                Nothing -> log' & quoteRange .~ Nothing
             )
     & S.mapM (\l -> T.putStr $ (L.toStrict . T.decodeUtf8 . encode) [l])
-    & S.trace (\_ -> modifyIORef' deidCounter (+1))
+    -- & S.trace (\_ -> modifyIORef' deidCounter (+1))
     & S.drain
 
   esHits <- readIORef hitCounter

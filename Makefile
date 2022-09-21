@@ -8,6 +8,8 @@ OPT     ?=#
 PWD      = $(shell pwd)
 PORT    ?= 9200
 
+BIN ?= deid
+
 build: clean ## build
 	cabal $(OPT) build --minimize-conflict-set --jobs='$$ncpus' | source-highlight --src-lang=haskell --out-format=esc
 
@@ -38,13 +40,12 @@ clobber: clean ## cleanpq
 	rm -rf tmp/*
 
 # make activate KEY_FILE=... first
-run: BIN ?= deid
 run: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-5be472e42700.json
 run: ## run BIN, e.g. make run BIN=<binary>
-	cabal $(OPT) run $(BIN) -- $(ARG)
+	cabal run $(BIN) -- $(ARG)
 
 repl: ## repl
-	cabal $(OPT) repl
+	cabal repl
 
 update: ## update project depedencies
 	cabal update
@@ -56,6 +57,13 @@ gcp-login: ## login to GCP
 # KEY_FILE=~milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-5be472e42700.json
 gcp-activate:  ## activate service account--copy and paste "dlp-api" service-account key, KEY_FILE=<dlp-api>.json
 	gcloud auth activate-service-account --key-file ${KEY_FILE}
+
+deid-csv: MAX_DOCS ?= 1000
+deid-csv: TIMESTAMP ?= $(shell date +'%Y-%m-%d-%H%M')
+deid-csv: CSV ?= /tmp/deid-$(TIMESTAMP).csv
+deid-csv: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-5be472e42700.json
+deid-csv: ## write /tmp/deid-<timestamp>.csv
+	cabal run deid -- --max=$(MAX_DOCS) --verbose | tee $(CSV)
 
 help: ## help
 	-@grep --extended-regexp '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
