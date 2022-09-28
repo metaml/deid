@@ -63,7 +63,7 @@ main = do
     & S.map (\(id', o) -> (id', fromMaybe emptyObject o))
     & S.map (\(id', o) -> (id', select "lp_owner" o, select "service_name" o, select "message" o, select "@timestamp" o))
     & S.map toDeid
-    & S.mapM (if arg'.debug then inspectLog' else inspectLog) -- call GCP
+    & S.mapM (if arg'.debug then inspectLogDebug else inspectLog) -- call GCP
     & S.trace (\_ -> modifyIORef' inspectCounter (+1))
     & S.mapM (\e -> case (toFindings e) of
                       Right ps -> pure ps

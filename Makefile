@@ -60,7 +60,7 @@ gcp-activate:  ## activate service account--copy and paste "dlp-api" service-acc
 
 deid-csv: MAX_DOCS ?= 1000
 deid-csv: TIMESTAMP ?= $(shell date +'%Y-%m-%d-%H%M')
-deid-csv: CSV ?= /tmp/deid-$(TIMESTAMP).csv
+deid-csv: CSV ?= /var/tmp/deid-$(TIMESTAMP).csv
 deid-csv: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-5be472e42700.json
 deid-csv: ## write /tmp/deid-<timestamp>.csv
 	cabal run deid -- --max=$(MAX_DOCS) --verbose | tee $(CSV)

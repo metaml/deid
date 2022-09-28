@@ -62,14 +62,10 @@ header' = [ "doc_id"
           ]
 
 inspectLog :: Either Text Log -> IO (Either Text (GooglePrivacyDlpV2InspectContentResponse, Log))
-inspectLog e = do
-  logger <- infoLogger
-  inspectLogWithLogger logger e
+inspectLog e = infoLogger >>= \l -> inspectLogWithLogger l e
 
-inspectLog' :: Either Text Log -> IO (Either Text (GooglePrivacyDlpV2InspectContentResponse, Log))
-inspectLog' e = do
-  logger <- debugLogger
-  inspectLogWithLogger logger e
+inspectLogDebug :: Either Text Log -> IO (Either Text (GooglePrivacyDlpV2InspectContentResponse, Log))
+inspectLogDebug e = debugLogger >>= \l -> inspectLogWithLogger l e
 
 inspectLogWithLogger :: Logger -> Either Text Log -> IO (Either Text (GooglePrivacyDlpV2InspectContentResponse, Log))
 inspectLogWithLogger logger = \case

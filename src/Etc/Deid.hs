@@ -20,15 +20,12 @@ data Indices = IndicesAll | Indices (Set Text)
 data Query = Query Indices
   deriving (Eq, Show)
 
-data Verbosity = Quiet | Debug | Verbose
-  deriving (Eq, Ord, Show)
-
 arg :: IO Arg
 arg = execParser parser
 
 parser :: ParserInfo Arg
 parser = info (parseArg <**> helper) (fullDesc <> header "deid"
-                                               <> progDesc "detect PII data in ES"
+                                               <> progDesc "detect PII data in ES or PubSub"
                                      )
 
 parseArg :: Parser Arg

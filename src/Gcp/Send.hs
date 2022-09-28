@@ -20,6 +20,3 @@ infoLogger = newLogger Info stderr
 
 debugLogger :: IO Logger
 debugLogger = newLogger Debug stderr
-
--- scope :: Proxy '["https://www.googleapis.com/auth/spreadsheets"]
--- scope = Proxy
