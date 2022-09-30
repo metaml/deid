@@ -15,8 +15,8 @@ data Arg = Arg { project :: Text
                }
            deriving (Eq, Generic, Show)
 
-arg :: IO Arg
-arg = do
+args :: IO Arg
+args = do
   a <- execParser parser
   let subs' = if P.null a.subs
               then cbSubs a.project
@@ -24,11 +24,11 @@ arg = do
   pure $ a { subs = subs' }
   where
     cbSubs :: Text -> [Text]
-    cbSubs p = [ subscription p "lpgprj-p-logapp-usea1-gkelogs-deid-sub"
-               , subscription p "lpgprj-p-logapp-usea1-vmlogs-deid-sub"
-               , subscription p "lpgprj-p-logapp-usea1-gkelogs-deid-sub"
-               , subscription p "lpgprj-p-logapp-usea1-vmlogs-deid-sub"
-               ]
+    cbSubs p = subscription p <$> [ "lpgprj-p-logapp-usea1-gkelogs-deid-sub"
+                                  , "lpgprj-p-logapp-usea1-vmlogs-deid-sub"
+                                  , "lpgprj-p-logapp-usea1-gkelogs-deid-sub"
+                                  , "lpgprj-p-logapp-usea1-vmlogs-deid-sub"
+                                  ]
 
 parser :: ParserInfo Arg
 parser = info (parseArg <**> helper) (fullDesc <> header "deid-cb"
@@ -43,17 +43,17 @@ parseArg = Arg <$> strOption ( long "project"
                                <> metavar "PROJECT"
                                <> help "GCP project"
                              )
-               <*> strOptions ( long "sub"
-                                <> short 's'
-                                <> metavar "SUB"
-                                <> help "GCP subscription(s)"
-                              )
+               <*> (many . strOption) ( long "sub"
+                                        <> short 's'
+                                        <> metavar "SUB"
+                                        <> help "GCP PubSub subscription(s)"
+                                      )
                <*> option auto ( long "max"
                                  <> short 'm'
                                  <> value 1
                                  <> showDefault
                                  <> metavar "MAXRESULTS"
-                                 <> help "max results from each index"
+                                 <> help "max responses for each pull request"
                                )
                <*> switch ( long "verbose"
                             <> short 'v'
@@ -63,4 +63,3 @@ parseArg = Arg <$> strOption ( long "project"
                             <> short 'd'
                             <> help "debug (stderr; very noisy)"
                           )
-  where strOptions = many . strOption
