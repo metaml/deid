@@ -40,10 +40,11 @@ clobber: clean ## cleanpq
 	rm -rf tmp/*
 
 # make activate KEY_FILE=... first
-run: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-5be472e42700.json
+run: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-c0096aaa9469.json
 run: ## run BIN, e.g. make run BIN=<binary>
 	cabal run $(BIN) -- $(ARG)
 
+#repl: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-c0096aaa9469.json
 repl: ## repl
 	cabal repl
 
@@ -61,7 +62,7 @@ gcp-activate:  ## activate service account--copy and paste "dlp-api" service-acc
 deid-csv: MAX_DOCS ?= 1000
 deid-csv: TIMESTAMP ?= $(shell date +'%Y-%m-%d-%H%M')
 deid-csv: CSV ?= /var/tmp/deid-$(TIMESTAMP).csv
-deid-csv: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-5be472e42700.json
+deid-csv: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-c0096aaa9469.json
 deid-csv: ## write /tmp/deid-<timestamp>.csv
 	cabal run deid -- --max=$(MAX_DOCS) --verbose | tee $(CSV)
 
