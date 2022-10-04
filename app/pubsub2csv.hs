@@ -5,12 +5,10 @@ import Control.Lens
 import Data.Csv
 import Data.IORef
 import Data.Maybe
-import Data.Text as T
 import Data.Text.Encoding as T
 import Data.Text.IO as T
 import Data.ByteString.Lazy (toStrict)
 import Model.Csv
-import Model.Deid
 import Model.PubSub
 import Prelude as P
 import Streamly.Prelude as S
@@ -27,8 +25,6 @@ main = do
   msgCounter  <- newIORef (0 :: Int)
   inspectCounter <- newIORef (0 :: Int)
   deidCounter <- newIORef (0 :: Int)
-
-  T.putStrLn $ T.intercalate "," header'
 
   S.fromList arg.subs
     & S.trace (stderr' arg.verbose)

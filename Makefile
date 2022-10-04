@@ -44,9 +44,9 @@ run: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ct
 run: ## run BIN, e.g. make run BIN=<binary>
 	cabal run $(BIN) -- $(ARG)
 
-run-cb: ARG ?= --max=1
-run-cb: ## run BIN, e.g. make run BIN=<binary>
-	cabal run log2csv -- $(ARG)
+run-ps2cb: ARG ?= --max=1
+run-ps2cb: ## run pubsub2csv
+	cabal run pubsub2csv -- $(ARG)
 
 #repl: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-c0096aaa9469.json
 repl: ## repl
