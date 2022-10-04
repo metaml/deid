@@ -6,7 +6,9 @@ import Data.Csv
 import Data.IORef
 import Data.Maybe
 import Data.Text as T
+import Data.Text.Encoding as T
 import Data.Text.IO as T
+import Data.ByteString.Lazy (toStrict)
 import Model.Csv
 import Model.Deid
 import Model.PubSub
@@ -45,7 +47,7 @@ main = do
     & S.map (\(aid, b64, t) -> (aid, fromJust b64, fromJust t))
     & S.map (\(aid, b64, t) -> toRow' aid b64 t)
     & S.map (\(aid, log, t) -> encode [LogRow aid log t])
-    & S.mapM print
+    & S.mapM (stdout' . T.decodeUtf8 . toStrict)
     & S.drain
 
   pulls <- readIORef pullCounter
