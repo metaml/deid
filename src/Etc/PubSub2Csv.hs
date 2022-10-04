@@ -1,4 +1,4 @@
-module Etc.DeidCb where
+module Etc.PubSub2Csv where
 
 import Data.Int
 import Data.Text

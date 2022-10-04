@@ -33,8 +33,6 @@ data Log = Log { _docId :: DocId
                }
          deriving (Eq, Generic, Show, ToJSON, FromJSON)
 
-makeLenses ''Log
-
 instance ToRecord Log where
   toRecord l = record [ toField l._docId
                       , toField l._lpOwner
@@ -72,7 +70,7 @@ inspectLogWithLogger logger = \case
   Right l -> if T.null l._message
              then pure $ Left $ pack . show $ l
              else do
-               let msg = inspectContentReq (l ^. message)
+               let msg = inspectContentReq (l._message)
                    parent = "projects/lpgprj-gss-p-ctrlog-gl-01/locations/us-east1"
                    inspection = newDLPProjectsLocationsContentInspect parent msg
                    scope = Proxy :: Proxy (Scopes DLPProjectsLocationsContentInspect)

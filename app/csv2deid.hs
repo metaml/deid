@@ -15,7 +15,7 @@ import Model.PubSub
 import Prelude as P
 import Streamly.Prelude as S
 import System.IO (stderr)
-import qualified Etc.PubSub2Csv as Cli
+import qualified Etc.Csv2Deid as Cli
 
 main :: IO ()
 main = do

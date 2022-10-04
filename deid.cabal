@@ -12,7 +12,8 @@ library
                     , Data.Text.Time.Format
                     , Data.Text.Time.Parse
                     , Etc.Deid
-                    , Etc.DeidCb
+                    , Etc.Csv2Deid
+                    , Etc.PubSub2Csv
                     , Gcp.Send
                     , Model.BigQuery
                     , Model.Csv
@@ -110,8 +111,35 @@ executable deid
                , text
                , time
 
-executable log2csv
+executable pubsub2csv
   main-is: pubsub2csv.hs
+  hs-source-dirs: app
+  ghc-options: -Wall -O2 -flate-specialise -fspecialise-aggressively
+  default-language: Haskell2010
+  default-extensions: DuplicateRecordFields
+                    , LambdaCase
+                    , NoFieldSelectors
+                    , OverloadedStrings
+                    , OverloadedRecordDot
+  build-depends: base ^>= 4.16.1.0
+               , aeson
+               , bloodhound
+               , bytestring
+               , containers
+               , cassava
+               , deid
+               , gogol
+               , gogol-core
+               , gogol-dlp
+               , lens
+               , lens-aeson
+               , read-env-var
+               , streamly
+               , text
+               , time
+
+executable csv2deid
+  main-is: csv2deid.hs
   hs-source-dirs: app
   ghc-options: -Wall -O2 -flate-specialise -fspecialise-aggressively
   default-language: Haskell2010

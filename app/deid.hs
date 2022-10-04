@@ -1,6 +1,6 @@
 module Main where
 
-import Control.Lens ((^?), (.~))
+import Control.Lens ((^?))
 import Control.Monad (when)
 import Data.Aeson.Key as A
 import Data.Aeson.Lens as A
@@ -75,19 +75,20 @@ main = do
     & S.filter (\(q, _, _, _, _) -> isJust q)
     & S.map (\(q, i, l, loc, log') -> (fromJust q, fromJust i, fromJust l, fromJust loc, log'))
     & S.map (\(q, i, l, loc, log') -> ( loc.codepointRange
-                                      , log' & quote .~ Just q
-                                             & infoType .~ i.name
-                                             & likelihood .~ Just (strip l.fromGooglePrivacyDlpV2Finding_Likelihood)
+                                      , log' { _quote = Just q
+                                             , _infoType = i.name
+                                             , _likelihood = Just (strip l.fromGooglePrivacyDlpV2Finding_Likelihood)
+                                             }
                                       )
             )
     & S.map (\(cpr, log') -> case cpr of
-                               Just cpr' -> log' & (quoteRange .~ if isJust cpr'.start && isJust cpr'.end
-                                                                  then Just ( (fromIntegral . fromJust) cpr'.start
-                                                                            , (fromIntegral . fromJust) cpr'.end
-                                                                            )
-                                                                  else Nothing
-                                                   )
-                               Nothing -> log' & quoteRange .~ Nothing
+                               Just cpr' -> log' { _quoteRange = if isJust cpr'.start && isJust cpr'.end
+                                                                 then Just ( (fromIntegral . fromJust) cpr'.start
+                                                                           , (fromIntegral . fromJust) cpr'.end
+                                                                           )
+                                                                 else Nothing
+                                                 }
+                               Nothing -> log' { _quoteRange = Nothing }
             )
     & S.mapM (\l -> T.putStr $ (L.toStrict . T.decodeUtf8 . encode) [l])
     -- & S.trace (\_ -> modifyIORef' deidCounter (+1))
