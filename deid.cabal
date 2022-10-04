@@ -164,3 +164,4 @@ executable csv2deid
                , streamly
                , text
                , time
+               , vector
