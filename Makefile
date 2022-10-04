@@ -33,7 +33,7 @@ lint: ## lint
 	hlint app src
 
 clean: ## clean
-	cabal clean
+	-cabal clean
 
 clobber: clean ## cleanpq
 	rm -rf dist-newstyle
@@ -44,7 +44,7 @@ run: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ct
 run: ## run BIN, e.g. make run BIN=<binary>
 	cabal run $(BIN) -- $(ARG)
 
-run-cb: ARG ?= --verbose --max=3
+run-cb: ARG ?= --verbose --max=1
 run-cb: ## run BIN, e.g. make run BIN=<binary>
 	cabal run deid-cb -- $(ARG)
 

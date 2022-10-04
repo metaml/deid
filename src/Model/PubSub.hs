@@ -1,7 +1,9 @@
 module Model.PubSub where
 
 import Data.Text
+import Data.Text.Encoding
 import Gcp.Send (sendGcp)
+import Gogol.Data.Time
 import Gogol.Prelude
 import Gogol.PubSub
 
@@ -32,5 +34,8 @@ messages r = r.receivedMessages
 toIdMsgPair :: ReceivedMessage -> (Maybe AckId, Maybe PubsubMessage)
 toIdMsgPair r = (r.ackId, r.message)
 
-toTuple :: AckId -> PubsubMessage -> (AckId, Maybe PubsubMessage_Attributes, Maybe Base64, Maybe DateTime)
-toTuple i msg = (i, msg.attributes, msg.data', msg.publishTime)
+toRow :: AckId -> PubsubMessage -> (AckId, Maybe Base64, Maybe DateTime)
+toRow i msg = (i, msg.data', msg.publishTime)
+
+toRow' :: AckId -> Base64 -> DateTime -> (AckId, Text, UTCTime)
+toRow' i b64 dt = (i, decodeUtf8 b64.fromBase64, dt.unDateTime)

@@ -8,10 +8,14 @@ category:             application
 extra-source-files:   README.md
 
 library
-  exposed-modules:    Etc.Deid
+  exposed-modules:    Data.Text.Time
+                    , Data.Text.Time.Format
+                    , Data.Text.Time.Parse
+                    , Etc.Deid
                     , Etc.DeidCb
                     , Gcp.Send
                     , Model.BigQuery
+                    , Model.Csv
                     , Model.Deid
                     , Model.Elastic
                     , Model.PubSub
@@ -53,12 +57,14 @@ library
   build-depends:      base ^>= 4.16.1.0
                     , aeson
                     , aeson-optics
+                    , attoparsec
                     , bloodhound
                     , bytestring
                     , cassava
                     , containers
                     , either
                     , exceptions
+                    , formatting
                     , generic-aeson
                     , gogol
                     , gogol-bigquery

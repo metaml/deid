@@ -1,11 +1,13 @@
 module Main where
 
 import Control.Monad (when)
-import Data.Function ((&))
+import Control.Lens
+import Data.Csv
 import Data.IORef
 import Data.Maybe
 import Data.Text as T
 import Data.Text.IO as T
+import Model.Csv
 import Model.Deid
 import Model.PubSub
 import Prelude as P
@@ -36,7 +38,13 @@ main = do
     & S.concatMap S.fromFoldable -- stream of lists to stream of elements of lists
     & S.trace (increment msgCounter)
     & S.map toIdMsgPair
-    & S.filter (\(id', msg) -> isJust id' && isJust msg)
+    & S.filter (\(aid, msg) -> isJust aid && isJust msg)
+    & S.map (\(aid, msg) -> (fromJust aid, fromJust msg))
+    & S.map (\(aid, msg) -> toRow aid msg)
+    & S.filter (\(_, b64, t) -> isJust b64 && isJust t)
+    & S.map (\(aid, b64, t) -> (aid, fromJust b64, fromJust t))
+    & S.map (\(aid, b64, t) -> toRow' aid b64 t)
+    & S.map (\(aid, log, t) -> encode [LogRow aid log t])
     & S.mapM print
     & S.drain
 
