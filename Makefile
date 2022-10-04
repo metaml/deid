@@ -75,7 +75,7 @@ deid-csv: ## write /tmp/deid-<timestamp>.csv
 	cabal run deid -- --max=$(MAX_DOCS) --verbose | tee $(CSV)
 
 help: ## help
-	-@grep --extended-regexp '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+	-@grep --extended-regexp '^[0-9A-Za-z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 	  | sed 's/^Makefile://1' \
 	  | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
 	-@ghc --version
