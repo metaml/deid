@@ -63,6 +63,14 @@ main = do
     & S.map (\(aid, pid, n, fs, t) -> (\f -> (aid, pid, n, f, t)) <$> fs)
     & S.concatMap S.fromFoldable
     & S.map (\(aid, pid, n, f, t) -> (aid, pid, n, f.quote, f.infoType, f.likelihood, f.location, t))
+    & S.filter (\(_, _, _, q, i, l, loc, _) -> isJust q && isJust i && isJust l && isJust loc)
+    & S.map (\(aid, pid, n, q, i, l, loc, t) -> (aid, pid, n, fromJust q, fromJust i, fromJust l, fromJust loc, t))
+    & S.map (\(aid, pid, n, q, i, l, loc, t) -> (aid, pid, n, q, i.name, l.fromGooglePrivacyDlpV2Finding_Likelihood, loc.byteRange, t))
+    & S.filter (\(_, _, _, _, i, _, r, _) -> isJust i && isJust r)
+    & S.map (\(aid, pid, n, q, i, l, r, t) -> (aid, pid, n, q, fromJust i, l, fromJust r, t))
+    & S.map (\(aid, pid, n, q, i, l, r, t) -> (aid, pid, n, q, i, l, (r.start, r.end), t))
+    & S.filter (\(_, _, _, _, _, _, (s, e), _) -> isJust s && isJust e)
+    & S.map (\(aid, pid, n, q, i, l, (s, e), t) -> (aid, pid, n, q, i, l, (fromJust s, fromJust e), t))
     & S.mapM print
     & S.drain
 
