@@ -91,7 +91,7 @@ main = do
                                Nothing -> log' { _quoteRange = Nothing }
             )
     & S.mapM (\l -> T.putStr $ (L.toStrict . T.decodeUtf8 . encode) [l])
-    -- & S.trace (\_ -> modifyIORef' deidCounter (+1))
+    & S.trace (\_ -> modifyIORef' deidCounter (+1))
     & S.drain
 
   esHits <- readIORef hitCounter

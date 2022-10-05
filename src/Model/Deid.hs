@@ -78,6 +78,15 @@ inspectLogWithLogger logger = \case
                pure $ Right (r, l)
   Left e' -> pure $ Left e'
 
+inspect :: Text -> IO GooglePrivacyDlpV2InspectContentResponse
+inspect l = do
+  let msg = inspectContentReq l
+      parent = "projects/lpgprj-gss-p-ctrlog-gl-01/locations/us-east1"
+      inspection = newDLPProjectsLocationsContentInspect parent msg
+      scope = Proxy :: Proxy (Scopes DLPProjectsLocationsContentInspect)
+  logger <- infoLogger
+  sendGcpWithLogger logger inspection scope
+
 -- NB: odd record update error that requires a type signature
 inspectContentReq :: Text -> GooglePrivacyDlpV2InspectContentRequest
 inspectContentReq v = newGooglePrivacyDlpV2InspectContentRequest { item = Just i

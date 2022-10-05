@@ -10,12 +10,12 @@ PORT    ?= 9200
 
 BIN ?= deid
 
-build: clean ## build
+build: clean ## build (default)
 	cabal $(OPT) build --minimize-conflict-set --jobs='$$ncpus' | source-highlight --src-lang=haskell --out-format=esc
 
 buildc: clean ## build continuously
 	@cabal build 2>&1 | source-highlight --src-lang=haskell --out-format=esc
-	@fswatcher --path . --include "\.hs$$|\.cabal$$" --throttle 31 cabal -- $(OPT) build 2>&1 \
+	@fswatcher --path . --include "\.hs$$|\.cabal$$" --throttle 8 cabal -- $(OPT) build 2>&1 \
 	| source-highlight --src-lang=haskell --out-format=esc
 
 install: # install binary
@@ -44,12 +44,12 @@ run: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ct
 run: ## run BIN, e.g. make run BIN=<binary>
 	cabal run $(BIN) -- $(ARG)
 
-run-ps2csv: ARG ?= --max=1
+run-ps2csv: ARG ?= --max=128
 run-ps2csv: ## run pubsub2csv
 	cabal run pubsub2csv -- $(ARG)
 
-run-cvs2deid: ARG ?=
-run-cvs2deid: ## run pubsub2csv
+run-csv2deid: ARG ?=
+run-csv2deid: ## run pubsub2csv
 	cabal run csv2deid -- $(ARG)
 
 #repl: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-c0096aaa9469.json

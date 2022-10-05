@@ -158,6 +158,7 @@ executable csv2deid
                , gogol
                , gogol-core
                , gogol-dlp
+               , hashmap
                , lens
                , lens-aeson
                , read-env-var

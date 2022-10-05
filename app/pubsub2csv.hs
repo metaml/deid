@@ -5,6 +5,7 @@ import Control.Lens
 import Data.Csv
 import Data.IORef
 import Data.Maybe
+import Data.Text as T
 import Data.Text.Encoding as T
 import Data.Text.IO as T
 import Data.ByteString.Lazy (toStrict)
@@ -23,8 +24,6 @@ main = do
 
   pullCounter <- newIORef (0 :: Int)
   msgCounter  <- newIORef (0 :: Int)
-  inspectCounter <- newIORef (0 :: Int)
-  deidCounter <- newIORef (0 :: Int)
 
   S.fromList arg.subs
     & S.trace (stderr' arg.verbose)
@@ -42,16 +41,18 @@ main = do
     & S.filter (\(_, b64, t) -> isJust b64 && isJust t)
     & S.map (\(aid, b64, t) -> (aid, fromJust b64, fromJust t))
     & S.map (\(aid, b64, t) -> toRow' aid b64 t)
-    & S.map (\(aid, l, t) -> encode [LogRow aid l t])
+    & S.map (\(aid, l, t) -> encode [LogRow aid l t]) -- a line of CSV
     & S.mapM (stdout' . T.decodeUtf8 . toStrict)
     & S.drain
 
   pulls <- readIORef pullCounter
   msgs <- readIORef msgCounter
-  inspections <- readIORef inspectCounter
-  deids <- readIORef deidCounter
 
-  print pulls >> print msgs >> print inspections >> print deids
+  S.fromList [pulls, msgs]
+    & S.map (T.pack . show)
+    & S.mapM (T.hPutStrLn stderr)
+    & S.drain
+
   where
     stderr' verbose = if verbose then hPutStrLn stderr else (\_ -> pure ())
     stdout' = T.putStrLn
