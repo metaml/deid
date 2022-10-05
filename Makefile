@@ -19,7 +19,7 @@ buildc: clean ## build continuously
 	| source-highlight --src-lang=haskell --out-format=esc
 
 install: # install binary
-	mkdir -p bin
+	rm -rf bin/* && mkdir -p bin
 	cabal build --verbose
 	cabal install --overwrite-policy=always --install-method=copy --installdir=bin
 

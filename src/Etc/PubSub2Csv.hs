@@ -26,8 +26,8 @@ args = do
     cbSubs :: Text -> [Text]
     cbSubs p = subscription p <$> [ "lpgprj-p-logapp-usea1-gkelogs-deid-sub"
                                   , "lpgprj-p-logapp-usea1-vmlogs-deid-sub"
-                                  , "lpgprj-p-logapp-usea1-gkelogs-deid-sub"
-                                  , "lpgprj-p-logapp-usea1-vmlogs-deid-sub"
+                                  , "lpgprj-n-logapp-usea1-gkelogs-deid-sub"
+                                  , "lpgprj-n-logapp-usea1-vmlogs-deid-sub"
                                   ]
 
 parser :: ParserInfo Arg

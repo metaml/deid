@@ -35,7 +35,7 @@ main = do
                       Right v -> pure $ V.toList v
              )
     & S.filter (not . P.null)
-    & S.trace (\l -> hPutStrLn stderr (show l))
+    & S.trace (stderr' . show)
     & S.concatMap S.fromFoldable
     & S.map (\l -> (l.ackId, T.encodeUtf8 l.payload, l.timestamp))
     & S.map (\(aid, l, t) -> (aid, C.fromStrict l, t))
@@ -58,7 +58,7 @@ main = do
                 pure (aid, pid, n, r, t)
              )
     & S.map (\(aid, pid, n, r, t) -> (aid, pid, n, toFindings r, t))
-    & S.trace (\t -> hPutStrLn stderr (show t))
+    & S.trace (stderr' . show)
     & S.filter (\(_, _, _, fs, _) -> (not . P.null) fs)
     & S.map (\(aid, pid, n, fs, t) -> (\f -> (aid, pid, n, f, t)) <$> fs)
     & S.concatMap S.fromFoldable
@@ -82,3 +82,6 @@ main = do
       Just (GooglePrivacyDlpV2InspectResult (Just fs) _) -> fs
       Just (GooglePrivacyDlpV2InspectResult Nothing _)   -> []
       Nothing                                            -> []
+
+    stderr' :: String -> IO ()
+    stderr' = hPutStrLn stderr
