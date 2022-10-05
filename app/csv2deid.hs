@@ -5,6 +5,7 @@ import Control.Lens
 import Data.Aeson as A
 import Data.ByteString as B
 import Data.Csv as C
+import Data.Int
 import Data.IORef
 import Data.Maybe
 import Data.Text as T
@@ -55,22 +56,25 @@ main = do
     & S.map (\(aid, String pid, n, p, t) -> (aid, pid, n, A.encode p, t))
     & S.mapM (\(aid, pid, n, p, t) -> do
                 r <- inspect (T.decodeUtf8 (B.toStrict p))
-                pure (aid, pid, n, r, t)
+                pure (aid, pid, n, r, p, t)
              )
-    & S.map (\(aid, pid, n, r, t) -> (aid, pid, n, toFindings r, t))
+    & S.map (\(aid, pid, n, r, p, t) -> (aid, pid, n, toFindings r, p, t))
     & S.trace (stderr' . show)
-    & S.filter (\(_, _, _, fs, _) -> (not . P.null) fs)
-    & S.map (\(aid, pid, n, fs, t) -> (\f -> (aid, pid, n, f, t)) <$> fs)
+    & S.filter (\(_, _, _, fs, _, _) -> (not . P.null) fs)
+    & S.map (\(aid, pid, n, fs, p, t) -> (\f -> (aid, pid, n, f, p, t)) <$> fs)
     & S.concatMap S.fromFoldable
-    & S.map (\(aid, pid, n, f, t) -> (aid, pid, n, f.quote, f.infoType, f.likelihood, f.location, t))
-    & S.filter (\(_, _, _, q, i, l, loc, _) -> isJust q && isJust i && isJust l && isJust loc)
-    & S.map (\(aid, pid, n, q, i, l, loc, t) -> (aid, pid, n, fromJust q, fromJust i, fromJust l, fromJust loc, t))
-    & S.map (\(aid, pid, n, q, i, l, loc, t) -> (aid, pid, n, q, i.name, l.fromGooglePrivacyDlpV2Finding_Likelihood, loc.byteRange, t))
-    & S.filter (\(_, _, _, _, i, _, r, _) -> isJust i && isJust r)
-    & S.map (\(aid, pid, n, q, i, l, r, t) -> (aid, pid, n, q, fromJust i, l, fromJust r, t))
-    & S.map (\(aid, pid, n, q, i, l, r, t) -> (aid, pid, n, q, i, l, (r.start, r.end), t))
-    & S.filter (\(_, _, _, _, _, _, (s, e), _) -> isJust s && isJust e)
-    & S.map (\(aid, pid, n, q, i, l, (s, e), t) -> (aid, pid, n, q, i, l, (fromJust s, fromJust e), t))
+    & S.map (\(aid, pid, n, f, p, t) -> (aid, pid, n, f.quote, f.infoType, f.likelihood, f.location, p, t))
+    & S.filter (\(_, _, _, q, i, l, loc, _, _) -> isJust q && isJust i && isJust l && isJust loc)
+    & S.map (\(aid, pid, n, q, i, l, loc, p, t) -> (aid, pid, n, fromJust q, fromJust i, fromJust l, fromJust loc, p, t))
+    & S.map (\(aid, pid, n, q, i, l, loc, p, t) -> (aid, pid, n, q, i.name, l.fromGooglePrivacyDlpV2Finding_Likelihood, loc.byteRange, p, t))
+    & S.filter (\(_, _, _, _, i, _, r, _, _) -> isJust i && isJust r)
+    & S.map (\(aid, pid, n, q, i, l, r, p, t) -> (aid, pid, n, q, fromJust i, l, fromJust r, p, t))
+    & S.map (\(aid, pid, n, q, i, l, r, p, t) -> (aid, pid, n, q, i, l, (r.start, r.end), p, t))
+    & S.filter (\(_, _, _, _, _, _, (s, e), _, _) -> isJust s && isJust e)
+    & S.map (\(aid, pid, n, q, i, l, (s, e), p, t) -> (aid, pid, n, q, i, l, (fromJust s, fromJust e), p, t))
+    & S.map (\(aid, pid, n, q, i, l, pair, p, t) -> (aid, pid, n, q, i, l, pad pair p, (decodeUtf8 . B.toStrict) p, t))
+    & S.map (\(aid, pid, n, q, i, l, (s, e), p, t) -> (aid, pid, n, q, i, l, substring s (e - s) p, t))
+    & S.map (\(aid, pid, n, q, i, l, q', t) -> (pid, n, q, i, l, q', t, aid))
     & S.mapM print
     & S.drain
 
@@ -82,14 +86,26 @@ main = do
     & S.drain
 
   where
-    increment :: IORef Int -> a -> IO ()
-    increment r _ = modifyIORef' r (+1)
-
     toFindings :: GooglePrivacyDlpV2InspectContentResponse ->  [GooglePrivacyDlpV2Finding]
     toFindings (GooglePrivacyDlpV2InspectContentResponse r) = case r of
       Just (GooglePrivacyDlpV2InspectResult (Just fs) _) -> fs
       Just (GooglePrivacyDlpV2InspectResult Nothing _)   -> []
       Nothing                                            -> []
+
+    pad :: (Int64, Int64) -> C.ByteString -> (Int, Int)
+    pad (s, e) p = let s' = fromIntegral (s - 21) :: Int
+                       e' = fromIntegral (e + 21) :: Int
+                       p' = B.toStrict p
+                       len = B.length p'
+                   in ( if s' < 0 then 0 else s'
+                      , if e' > len then len else e'
+                      )
+
+    substring :: Int -> Int -> T.Text -> T.Text
+    substring s len = T.take len . T.drop s
+
+    increment :: IORef Int -> a -> IO ()
+    increment r _ = modifyIORef' r (+1)
 
     stderr' :: String -> IO ()
     stderr' = hPutStrLn stderr
