@@ -12,7 +12,7 @@
       let
         pname = "deid";
         pkgs = nixpkgs.legacyPackages.${system};
-        haskell-pkgs = pkgs.haskell.packages.ghc923;
+        haskell-pkgs = pkgs.haskell.packages.ghc924;
         uname = nixpkgs.lib.lists.last (nixpkgs.lib.strings.split "-" "${system}");
 
         deid = pkgs.runCommand

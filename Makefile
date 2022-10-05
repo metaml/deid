@@ -48,8 +48,16 @@ run: ## run BIN, e.g. make run BIN=<binary>
 repl: ## repl
 	cabal repl
 
-update: ## update project depedencies
-	cabal update
+update: ## update nix and cabal project dependencies
+update: nix-update cabal-update
+
+cabal-update: ## update cabal project depedencies
+	nix develop \
+	&& cabal update \
+	&& exit
+
+flake-update: ## update nix and project dependencies
+	nix flake update
 
 gcp-login: ## login to GCP
 	gcloud auth login
@@ -97,7 +105,7 @@ nix-clobber: ## clean up everything: https://nixos.org/guides/nix-pills/garbage-
 	rm -f /nix/var/nix/gcroots/auto/*
 	nix-collect-garbage --delete-old
 
-nix-update: ## init/update nix globally
+nix-update-all: ## init/update nix globally
 	nix-channel --add https://nixos.org/channels/nixpkgs-unstable unstable
 	nix-channel --update
 	nix profile upgrade '.*'
