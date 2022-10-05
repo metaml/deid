@@ -44,14 +44,6 @@ run: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ct
 run: ## run BIN, e.g. make run BIN=<binary>
 	cabal run $(BIN) -- $(ARG)
 
-run-ps2csv: ARG ?= --max=128
-run-ps2csv: ## run pubsub2csv
-	cabal run pubsub2csv -- $(ARG)
-
-run-csv2deid: ARG ?=
-run-csv2deid: ## run pubsub2csv
-	cabal run csv2deid -- $(ARG)
-
 #repl: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-c0096aaa9469.json
 repl: ## repl
 	cabal repl
@@ -73,6 +65,16 @@ deid-csv: CSV ?= /var/tmp/deid-$(TIMESTAMP).csv
 deid-csv: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-c0096aaa9469.json
 deid-csv: ## write /tmp/deid-<timestamp>.csv
 	cabal run deid -- --max=$(MAX_DOCS) --verbose | tee $(CSV)
+
+cb-deid: ## find PII data in CB logs in GCP
+cb-deid: install cb-ps2csv cb-csv2deid
+	wc -l /var/tmp/deid-cb.csv
+
+cb-ps2csv: ## CB pubsub to CSV
+	./bin/pubsub2csv --max 1000 | tee /var/tmp/pubsub.csv
+
+cb-csv2deid: ## CB csv to deid (PII)
+	cat /var/tmp/pubsub.csv | ./bin/csv2deid | tee /var/tmp/deid-cb.csv
 
 help: ## help
 	-@grep --extended-regexp '^[0-9A-Za-z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \

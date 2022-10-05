@@ -4,7 +4,7 @@ import Control.Monad (when)
 import Control.Lens
 import Data.Aeson as A
 import Data.ByteString as B
-import Data.Csv as C
+import Data.Csv as Csv
 import Data.Int
 import Data.IORef
 import Data.Maybe
@@ -16,9 +16,12 @@ import Model.Deid
 import Prelude as P hiding (getLine)
 import Streamly.Prelude as S
 import System.IO (hPutStrLn, stderr)
-import qualified Data.ByteString.Lazy.Char8 as C
 import qualified Data.Aeson.KeyMap as M
+import qualified Data.ByteString.Lazy.Char8 as C
+import qualified Data.Text.IO as IO
+import qualified Data.Text.Lazy as L
 import qualified Data.Vector as V
+import qualified Database.Bloodhound as BH
 import qualified Etc.Csv2Deid as Cli
 
 main :: IO ()
@@ -31,7 +34,7 @@ main = do
   S.repeatM B.getLine
     & S.trace (increment csvCounter)
     & S.map C.fromStrict
-    & S.mapM (\l -> case (C.decode NoHeader l :: Either String (V.Vector LogRow)) of
+    & S.mapM (\l -> case (Csv.decode NoHeader l :: Either String (V.Vector LogRow)) of
                       Left e  -> print e >> pure []
                       Right v -> pure $ V.toList v
              )
@@ -47,10 +50,10 @@ main = do
     & S.filter (\(_, p, n, r, _) -> isJust p && isJust n && isJust r)
     & S.map (\(aid, p, n, r, t) -> (aid, fromJust p, fromJust n, fromJust r, t))
     & S.map (\(aid, Object p, n, Object r, t) -> (aid, M.lookup "labels" r, n, p, t))
-    & S.filter (\(_, l, n, p, _) -> isJust l)
+    & S.filter (\(_, l, _, _, _) -> isJust l)
     & S.map (\(aid, l, n, p, t) -> (aid, fromJust l, n, p, t))
     & S.map (\(aid, Object l, String n, p, t) -> (aid, M.lookup "project_id" l, P.last (T.splitOn "/" n), p, t))
-    & S.filter (\(_, pid, n, p, _) -> isJust pid)
+    & S.filter (\(_, pid, _, _, _) -> isJust pid)
     -- & S.trace (\t -> hPutStrLn stderr (show t))
     & S.map (\(aid, pid, n, p, t) -> (aid, fromJust pid, n, p, t))
     & S.map (\(aid, String pid, n, p, t) -> (aid, pid, n, A.encode p, t))
@@ -73,9 +76,9 @@ main = do
     & S.filter (\(_, _, _, _, _, _, (s, e), _, _) -> isJust s && isJust e)
     & S.map (\(aid, pid, n, q, i, l, (s, e), p, t) -> (aid, pid, n, q, i, l, (fromJust s, fromJust e), p, t))
     & S.map (\(aid, pid, n, q, i, l, pair, p, t) -> (aid, pid, n, q, i, l, pad pair p, (decodeUtf8 . B.toStrict) p, t))
-    & S.map (\(aid, pid, n, q, i, l, (s, e), p, t) -> (aid, pid, n, q, i, l, substring s (e - s) p, t))
-    & S.map (\(aid, pid, n, q, i, l, q', t) -> (pid, n, q, i, l, q', t, aid))
-    & S.mapM print
+    & S.map (\(aid, pid, n, q, i, l, pair, p, t) -> Log (BH.DocId aid) pid n p ((T.pack . show) t) (Just q) (Just i) (Just l) (Just pair))
+    & S.map (\l -> Csv.encode [l])
+    & S.mapM (IO.putStr . T.decodeUtf8 . B.toStrict)
     & S.drain
 
   csvs <- readIORef csvCounter
@@ -100,9 +103,6 @@ main = do
                    in ( if s' < 0 then 0 else s'
                       , if e' > len then len else e'
                       )
-
-    substring :: Int -> Int -> T.Text -> T.Text
-    substring s len = T.take len . T.drop s
 
     increment :: IORef Int -> a -> IO ()
     increment r _ = modifyIORef' r (+1)

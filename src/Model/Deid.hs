@@ -34,14 +34,14 @@ data Log = Log { _docId :: DocId
          deriving (Eq, Generic, Show, ToJSON, FromJSON)
 
 instance ToRecord Log where
-  toRecord l = record [ toField l._docId
-                      , toField l._lpOwner
+  toRecord l = record [ toField l._lpOwner
                       , toField l._serviceName
                       , toField l._quote
                       , toField l._infoType
                       , toField l._likelihood
                       , toField $ "[" <> (sample l) <> "]"
                       , toField l._timestamp
+                      , toField l._docId
                       ]
 
 instance ToField DocId where
