@@ -12,6 +12,7 @@ library
                     , Data.Text.Time.Format
                     , Data.Text.Time.Parse
                     , Etc.Deid
+                    , Etc.Delete
                     , Etc.Csv2Deid
                     , Etc.PubSub2Csv
                     , Gcp.Send
@@ -85,6 +86,35 @@ library
                     , time
                     , vector
 
+executable csv2deid
+  main-is: csv2deid.hs
+  hs-source-dirs: app
+  ghc-options: -Wall -O2 -flate-specialise -fspecialise-aggressively
+  default-language: Haskell2010
+  default-extensions: DuplicateRecordFields
+                    , LambdaCase
+                    , NoFieldSelectors
+                    , OverloadedStrings
+                    , OverloadedRecordDot
+  build-depends: base ^>= 4.16.1.0
+               , aeson
+               , bloodhound
+               , bytestring
+               , containers
+               , cassava
+               , deid
+               , gogol
+               , gogol-core
+               , gogol-dlp
+               , hashmap
+               , lens
+               , lens-aeson
+               , read-env-var
+               , streamly
+               , text
+               , time
+               , vector
+
 executable deid
   main-is: deid.hs
   hs-source-dirs: app
@@ -104,6 +134,29 @@ executable deid
                , gogol
                , gogol-core
                , gogol-dlp
+               , lens
+               , lens-aeson
+               , read-env-var
+               , streamly
+               , text
+               , time
+
+executable delete
+  main-is: delete.hs
+  hs-source-dirs: app
+  ghc-options: -Wall -O2 -flate-specialise -fspecialise-aggressively
+  default-language: Haskell2010
+  default-extensions: DuplicateRecordFields
+                    , LambdaCase
+                    , NoFieldSelectors
+                    , OverloadedStrings
+                    , OverloadedRecordDot
+  build-depends: base ^>= 4.16.1.0
+               , aeson
+               , bloodhound
+               , bytestring
+               , containers
+               , deid
                , lens
                , lens-aeson
                , read-env-var
@@ -138,8 +191,8 @@ executable pubsub2csv
                , text
                , time
 
-executable csv2deid
-  main-is: csv2deid.hs
+executable msgsize
+  main-is: msgsize.hs
   hs-source-dirs: app
   ghc-options: -Wall -O2 -flate-specialise -fspecialise-aggressively
   default-language: Haskell2010
@@ -151,18 +204,15 @@ executable csv2deid
   build-depends: base ^>= 4.16.1.0
                , aeson
                , bloodhound
-               , bytestring
                , containers
                , cassava
                , deid
                , gogol
                , gogol-core
                , gogol-dlp
-               , hashmap
                , lens
                , lens-aeson
                , read-env-var
                , streamly
                , text
                , time
-               , vector

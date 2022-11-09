@@ -102,13 +102,13 @@ nix-clean: ## clean up /nix
 	nix-collect-garbage --delete-old
 
 nix-clobber: ## clean up everything: https://nixos.org/guides/nix-pills/garbage-collector.html
-	rm -f /nix/var/nix/gcroots/auto/*
+	sudo rm -f /nix/var/nix/gcroots/auto/*
 	nix-collect-garbage --delete-old
 
 nix-update-all: ## init/update nix globally
 	nix-channel --add https://nixos.org/channels/nixpkgs-unstable unstable
 	nix-channel --update
-	nix profile upgrade '.*'
+	sudo nix profile upgrade '.*'
 	nix flake update
 
 docker-shell: ## run docker shell
