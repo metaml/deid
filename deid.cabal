@@ -157,6 +157,7 @@ executable delete
                , bytestring
                , containers
                , deid
+               , http-client
                , lens
                , lens-aeson
                , read-env-var

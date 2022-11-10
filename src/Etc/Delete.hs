@@ -10,6 +10,8 @@ type IndexName = Text
 
 data Arg = Arg { index :: IndexName
                , docId :: DocId
+               , server :: Text
+               , port :: Int
                , verbose :: Bool
                , debug :: Bool
                }
@@ -34,6 +36,20 @@ parseArg = Arg <$> strOption ( long "index"
                                <> metavar "DOCUMENT_ID"
                                <> help "id of document"
                              )
+              <*> strOption ( long "server"
+                              <> short 's'
+                              <> value "localhost"
+                              <> showDefault
+                              <> metavar "SERVER"
+                              <> help "ESC server"
+                            )
+               <*> option auto ( long "port"
+                                 <> short 'p'
+                                 <> value 9200
+                                 <> showDefault
+                                 <> metavar "PORT"
+                                 <> help "ES port"
+                               )
                <*> switch ( long "verbose"
                             <> short 'v'
                             <> help "verbose (stderr)"
