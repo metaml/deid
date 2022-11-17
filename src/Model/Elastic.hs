@@ -43,7 +43,10 @@ currentIndexes s = do
           & S.toList
   pure $ P.concat ixss
 
-documents :: Server -> IndexName -> Int -> Int -> IO [ParsedEsResponse (SearchResult Value)]
+type FromPos = Int
+type HitSize = Int
+
+documents :: Server -> IndexName -> FromPos -> HitSize -> IO [ParsedEsResponse (SearchResult Value)]
 documents srv ix' from' size' = S.fromPure (filter', spec)
                                 & S.map (\(f, s) -> (QueryBoolQuery $ mkBoolQuery [] [f] [] [], f, s))
                                 & S.map (\(q, f, s) -> (mkSearch (Just q) (Just f)) { sortBody = Just [s] })
@@ -53,6 +56,23 @@ documents srv ix' from' size' = S.fromPure (filter', spec)
                                 & S.toList
   where filter' = Filter $ MatchAllQuery Nothing
         spec = DefaultSortSpec $ mkSort (FieldName "@timestamp") Descending
+
+ownerServiceNames :: Server -> IO [ParsedEsResponse (SearchResult Value)]
+ownerServiceNames srv = do
+  let q = (MatchAllQuery Nothing)
+      src = SourceIncludeExclude (Include [ Pattern "lp_owner.keyword"
+                                          , Pattern "servce_name.keyword"
+                                          , Pattern "message"
+                                          , Pattern "@timestamp"
+                                         ]
+                                 )
+                                 (Exclude [])
+      s = (mkSearch (Just q) Nothing) { source = Just src
+                                      , size = Size 100
+                                      }
+  r <- withBH defaultManagerSettings srv (searchAll s)
+  print r
+  pure $ parseEsResponse r
 
 search :: Server -> FieldName -> QueryString -> [IndexName] -> IO [ParsedEsResponse (SearchResult Value)]
 search srv fn qs ixs = S.fromPure (query, filter', spec)
