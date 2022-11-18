@@ -14,6 +14,7 @@ library
                     , Etc.Deid
                     , Etc.Delete
                     , Etc.Csv2Deid
+                    , Etc.OsDeid
                     , Etc.PubSub2Csv
                     , Gcp.Send
                     , Model.BigQuery
@@ -117,6 +118,33 @@ executable csv2deid
 
 executable deid
   main-is: deid.hs
+  hs-source-dirs: app
+  ghc-options: -Wall -O2 -flate-specialise -fspecialise-aggressively
+  default-language: Haskell2010
+  default-extensions: DuplicateRecordFields
+                    , LambdaCase
+                    , NoFieldSelectors
+                    , OverloadedStrings
+                    , OverloadedRecordDot
+  build-depends: base ^>= 4.16.1.0
+               , aeson
+               , bloodhound
+               , containers
+               , cassava
+               , deid
+               , gogol
+               , gogol-core
+               , gogol-dlp
+               , lens
+               , lens-aeson
+               , read-env-var
+               , streamly
+               , text
+               , time
+
+
+executable os-deid
+  main-is: os-deid.hs
   hs-source-dirs: app
   ghc-options: -Wall -O2 -flate-specialise -fspecialise-aggressively
   default-language: Haskell2010

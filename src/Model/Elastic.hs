@@ -57,9 +57,26 @@ documents srv ix' from' size' = S.fromPure (filter', spec)
   where filter' = Filter $ MatchAllQuery Nothing
         spec = DefaultSortSpec $ mkSort (FieldName "@timestamp") Descending
 
-ownerServiceNames :: Server -> IO [ParsedEsResponse (SearchResult Value)]
-ownerServiceNames srv = do
-  let q = (MatchAllQuery Nothing)
+type LpOwner' = Text
+type ServiceName' = Text
+
+documents' :: Server -> LpOwner' -> ServiceName' -> FromPos -> HitSize -> IO [ParsedEsResponse (SearchResult Value)]
+documents' srv o n from' size' = S.fromPure (fs' o n, spec)
+                                 & S.map (\(fs, s) -> (QueryBoolQuery $ mkBoolQuery [] fs [] [], f', s))
+                                 & S.map (\(q, f, s) -> (mkSearch (Just q) (Just f)) { sortBody = Just [s] })
+                                 & S.map (pageSearch (From from') (Size size'))
+                                 & S.mapM (\s -> withBH defaultManagerSettings srv (searchAll s))
+                                 & S.mapM parseEsResponse
+                                 & S.toList
+  where fs' owner service = [ Filter $ TermQuery (Term "lp_owner.keyword" owner) Nothing
+                            , Filter $ TermQuery (Term "service_name.keyword" service) Nothing
+                            ]
+        f' = Filter $ MatchAllQuery Nothing
+        spec = DefaultSortSpec $ mkSort (FieldName "@timestamp") Descending
+
+ownerServiceNames :: Server -> IndexName -> IO [ParsedEsResponse (SearchResult Value)]
+ownerServiceNames srv idx = do
+  let q = MatchAllQuery Nothing
       src = SourceIncludeExclude (Include [ Pattern "lp_owner.keyword"
                                           , Pattern "servce_name.keyword"
                                           , Pattern "message"
@@ -68,10 +85,9 @@ ownerServiceNames srv = do
                                  )
                                  (Exclude [])
       s = (mkSearch (Just q) Nothing) { source = Just src
-                                      , size = Size 100
+                                      , size = Size 10000
                                       }
-  r <- withBH defaultManagerSettings srv (searchAll s)
-  print r
+  r <- withBH defaultManagerSettings srv (searchByIndex idx s)
   pure $ parseEsResponse r
 
 search :: Server -> FieldName -> QueryString -> [IndexName] -> IO [ParsedEsResponse (SearchResult Value)]

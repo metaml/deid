@@ -24,10 +24,15 @@ import qualified Etc.Deid as Cli
 main :: IO ()
 main = do
   arg' <- Cli.arg
-  let esUrl = Es.server arg'.server arg'.port
+  let url = Es.server arg'.server arg'.port
+  indices <- case arg'.query of
+               Cli.Query Cli.IndicesAll    -> currentIndexes url
+               Cli.Query (Cli.Indices ixs) -> pure $ (IndexName <$> Set.toList ixs)
 
-  S.fromPure esUrl
-    & S.mapM (\url -> ownerServiceNames url)
+  S.fromList indices
+    & S.filter (\(IndexName i) -> not (T.isPrefixOf "." i))
+    & S.trace (\(IndexName i) -> if arg'.verbose then (hPutStrLn stderr i) else pure ())
+    & S.mapM (\i -> documents url i 0 arg'.maxResults)
     & S.map rights
     & S.filter (not . P.null)
     & S.concatMap S.fromFoldable -- transform a stream of lists to a stream of elements
@@ -36,15 +41,11 @@ main = do
     & S.concatMap S.fromFoldable
     & S.map (\h -> (hitDocId h, hitSource h))
     & S.map (\(id', o) -> (id', fromMaybe emptyObject o))
-    & S.map (\(id', o) -> (id', select "message" o, select "@timestamp" o))
-    & S.filter (\(_, m, t) -> isJust m && isJust t)
-    & S.map (\(DocId id', m, t) -> (id', fromJust m, fromJust t))
-    & S.map (\(id', m, t) -> (id', T.length m, t))
-    & S.map (\t@(id', l, ts) -> (id', l, ts, encode [t]))
-    & S.map (\(id', l, ts, t) -> (id', l, ts, (toStrict . decodeUtf8) t))
-    & S.mapM (\(_, _, _, t) -> T.putStr t)
+    & S.map (\(id', o) -> (id', select "lp_owner" o, select "service_name" o, select "@timestamp" o))
+    & S.filter (\(_, o, n, _) -> isJust o && isJust n)
+    & S.map (\(_, o, n, _) -> (fromJust o, fromJust n))
+    & S.mapM (\t -> T.putStr $ (toStrict . decodeUtf8 . encode) [t])
     & S.drain
-
   where
     select :: A.Key -> Value -> Maybe Text
     select k o =  o ^? A.key k . _String

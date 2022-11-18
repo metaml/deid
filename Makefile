@@ -40,7 +40,7 @@ clobber: clean ## cleanpq
 	rm -rf tmp/*
 
 # make activate KEY_FILE=... first
-run: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-c0096aaa9469.json
+run: export GOOGLE_APPLICATION_CREDENTIALS ?= tmp/lpgprj-gss-p-ctrlog-gl-01-c0096aaa9469.json
 run: ## run BIN, e.g. make run BIN=<binary>
 	cabal run $(BIN) -- $(ARG)
 
@@ -123,3 +123,8 @@ docker-shell: ## run docker shell
 es-va-proxy: ESC = svor-esc101
 es-va-proxy: ## ssh tunnel to an esc server in VA
 	ssh -L $(PORT):$(ESC):9200 svvr-mng77
+
+owner-service-pairs: ## distinct pairs of (lp_owner, service_name)
+	cabal run os-pairs -- --max=9999 | tee tmp/owner-service.pairs
+	sort tmp/owner-service.pairs | uniq | tee tmp/distinct-owner-service.pairs
+	cp tmp/distinct-owner-service.pairs etc/owner-service.csv
