@@ -49,7 +49,6 @@ main = do
                           then (hPutStrLn stderr o >> hPutStrLn stderr s)
                           else pure ())
     & S.mapM (\(o, s) -> documents' url o s 0 arg'.maxResults)
-    & S.trace print
     & S.map rights
     & S.filter (not . P.null)
     & S.concatMap S.fromFoldable -- transform a stream of lists to a stream of elements
