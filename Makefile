@@ -2,6 +2,7 @@
 
 export SHELL := /bin/sh
 export NIX_REMOTE = daemon
+export GOOGLE_APPLICATION_CREDENTIALS ?= tmp/lpgprj-gss-p-ctrlog-gl-01-c0096aaa9469.json
 
 PROJECT ?= ${HOME}/${LOGNAME}/proj/deid
 OPT     ?=#
@@ -70,7 +71,6 @@ gcp-activate:  ## activate service account--copy and paste "dlp-api" service-acc
 deid-csv: MAX_DOCS ?= 1000
 deid-csv: TIMESTAMP ?= $(shell date +'%Y-%m-%d-%H%M')
 deid-csv: CSV ?= /var/tmp/deid-$(TIMESTAMP).csv
-deid-csv: export GOOGLE_APPLICATION_CREDENTIALS ?= /Users/milee/.zulu/lpgprj-gss-p-ctrlog-gl-01-c0096aaa9469.json
 deid-csv: ## write /tmp/deid-<timestamp>.csv
 	cabal run deid -- --max=$(MAX_DOCS) --verbose | tee $(CSV)
 
@@ -128,3 +128,10 @@ owner-service-pairs: ## distinct pairs of (lp_owner, service_name)
 	cabal run os-pairs -- --max=9999 | tee tmp/owner-service.pairs
 	sort tmp/owner-service.pairs | uniq | tee tmp/distinct-owner-service.pairs
 	cp tmp/distinct-owner-service.pairs etc/owner-service.csv
+
+owner-service-deid: ## run DEID on etc/owner-service.csv
+	IFS=$$'\r\n' && for i in $$(cat etc/owner-service.csv); do \
+		o=$$(echo $$i | awk -F, '{print $$1}'); \
+		s=$$(echo $$i | awk -F, '{print $$2}'); \
+		bin/os-deid --verbose --debug --max 10000 --owner $$o --service $$s | tee -a os-deid.csv; \
+	done
