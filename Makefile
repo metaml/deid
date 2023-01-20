@@ -130,8 +130,9 @@ owner-service-pairs: ## distinct pairs of (lp_owner, service_name)
 	cp tmp/distinct-owner-service.pairs etc/owner-service.csv
 
 owner-service-deid: ## run DEID on etc/owner-service.csv
-	IFS=$$'\r\n' && for i in $$(cat etc/owner-service.csv); do \
+	IFS=$$'\r\n' && for i in $$(sort etc/owner-service-1.csv); do \
 		o=$$(echo $$i | awk -F, '{print $$1}'); \
 		s=$$(echo $$i | awk -F, '{print $$2}'); \
-		bin/os-deid --verbose --debug --max 10000 --owner $$o --service $$s | tee -a os-deid.csv; \
+		echo bin/os-deid --max 1000 --owner $$o --service $$s; \
+		bin/os-deid --max 1000 --owner $$o --service $$s | tee -a os-deid.csv; \
 	done

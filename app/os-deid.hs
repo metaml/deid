@@ -42,11 +42,11 @@ main = do
   inspectCounter <- newIORef (0 :: Int)
   deidCounter <- newIORef (0 :: Int)
 
-  T.putStrLn $ T.intercalate "," header'
+  -- T.putStrLn $ T.intercalate "," header'
 
   S.fromList [(arg'.owner, arg'.service)]
     & S.trace (\(o, s) -> if arg'.verbose
-                          then (hPutStrLn stderr o >> hPutStrLn stderr s)
+                          then (hPutStr stderr o >> hPutStr stderr "," >> hPutStrLn stderr s)
                           else pure ())
     & S.mapM (\(o, s) -> documents' url o s 0 arg'.maxResults)
     & S.map rights
@@ -59,6 +59,9 @@ main = do
     & S.map (\h -> (hitDocId h, hitSource h))
     & S.map (\(id', o) -> (id', fromMaybe emptyObject o))
     & S.map (\(id', o) -> (id', select "lp_owner" o, select "service_name" o, select "message" o, select "@timestamp" o))
+    & S.trace (\e -> if arg'.verbose
+                     then (T.hPutStrLn stderr . T.pack . P.show $ e)
+                     else pure ())
     & S.map toDeid
     & S.mapM (if arg'.debug then inspectLogDebug else inspectLog) -- call GCP
     & S.trace (\_ -> modifyIORef' inspectCounter (+1))

@@ -45,6 +45,7 @@
           ";
           installPhase = "";
         };
+
         defaultPackage = packages.${system}.default;
 
         # nix develop
@@ -66,7 +67,6 @@
             pkgs.sourceHighlight
             pkgs.zlib.dev
           ];
-
           shellHook = ''
             export LANG=en_US.UTF-8
             export GOOGLE_PROJECT=lpgprj-gss-p-ctrlog-gl-01
