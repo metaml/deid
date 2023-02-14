@@ -119,6 +119,57 @@ inspectContentReq v = newGooglePrivacyDlpV2InspectContentRequest { item = Just i
               , newGooglePrivacyDlpV2InfoType { name = Just "XSRF_TOKEN" }         :: GooglePrivacyDlpV2InfoType
               ]
 
+-- NB: refactor later
+deidentify :: Text -> IO GooglePrivacyDlpV2DeidentifyContentResponse
+deidentify l = do
+  let msg = deidentifyContentReq l
+      parent = "projects/lpgprj-gss-p-ctrlog-gl-01/locations/us-east1"
+      deidentification = newDLPProjectsLocationsContentDeidentify parent msg
+      scope = Proxy :: Proxy (Scopes DLPProjectsLocationsContentDeidentify)
+  logger <- infoLogger
+  sendGcpWithLogger logger deidentification scope
+
+deidentifyContentReq :: Text -> GooglePrivacyDlpV2DeidentifyContentRequest
+deidentifyContentReq v = newGooglePrivacyDlpV2DeidentifyContentRequest { item = Just i
+                                                                       , deidentifyConfig = Just dc
+                                                                       , inspectConfig = Just ic
+                                                                       }
+  where i = newGooglePrivacyDlpV2ContentItem { value = Just v } :: GooglePrivacyDlpV2ContentItem
+        dc = newGooglePrivacyDlpV2DeidentifyConfig { infoTypeTransformations = Just itts
+                                                   } :: GooglePrivacyDlpV2DeidentifyConfig;
+        itts = newGooglePrivacyDlpV2InfoTypeTransformations { transformations = Just [itt]
+                                                            }
+        itt = newGooglePrivacyDlpV2InfoTypeTransformation { infoTypes = Just its
+                                                          , primitiveTransformation = Just pt
+                                                          }
+        pt = newGooglePrivacyDlpV2PrimitiveTransformation { replaceWithInfoTypeConfig = Just GooglePrivacyDlpV2ReplaceWithInfoTypeConfig
+                                                          }
+        ic = newGooglePrivacyDlpV2InspectConfig { infoTypes = Just its
+                                                , minLikelihood = Just GooglePrivacyDlpV2InspectConfig_MinLikelihood_Likely
+                                                , excludeInfoTypes = Just False
+                                                , includeQuote = Just True
+                                                } :: GooglePrivacyDlpV2InspectConfig
+        its = [ newGooglePrivacyDlpV2InfoType { name = Just "AGE" }                :: GooglePrivacyDlpV2InfoType
+              , newGooglePrivacyDlpV2InfoType { name = Just "CREDIT_CARD_NUMBER" } :: GooglePrivacyDlpV2InfoType
+              , newGooglePrivacyDlpV2InfoType { name = Just "DATE_OF_BIRTH" }      :: GooglePrivacyDlpV2InfoType
+              , newGooglePrivacyDlpV2InfoType { name = Just "EMAIL_ADDRESS" }      :: GooglePrivacyDlpV2InfoType
+              , newGooglePrivacyDlpV2InfoType { name = Just "GENDER" }             :: GooglePrivacyDlpV2InfoType
+              , newGooglePrivacyDlpV2InfoType { name = Just "PASSPORT" }           :: GooglePrivacyDlpV2InfoType
+              , newGooglePrivacyDlpV2InfoType { name = Just "PHONE_NUMBER" }       :: GooglePrivacyDlpV2InfoType
+              , newGooglePrivacyDlpV2InfoType { name = Just "STREET_ADDRESS" }     :: GooglePrivacyDlpV2InfoType
+              , newGooglePrivacyDlpV2InfoType { name = Just "AUTH_TOKEN" }         :: GooglePrivacyDlpV2InfoType
+              , newGooglePrivacyDlpV2InfoType { name = Just "AWS_CREDENTIALS" }    :: GooglePrivacyDlpV2InfoType
+              , newGooglePrivacyDlpV2InfoType { name = Just "AZURE_AUTH_TOKEN" }   :: GooglePrivacyDlpV2InfoType
+              , newGooglePrivacyDlpV2InfoType { name = Just "ENCRYPTION_KEY" }     :: GooglePrivacyDlpV2InfoType
+              , newGooglePrivacyDlpV2InfoType { name = Just "GCP_API_KEY" }        :: GooglePrivacyDlpV2InfoType
+              , newGooglePrivacyDlpV2InfoType { name = Just "GCP_CREDENTIALS" }    :: GooglePrivacyDlpV2InfoType
+              , newGooglePrivacyDlpV2InfoType { name = Just "JSON_WEB_TOKEN" }     :: GooglePrivacyDlpV2InfoType
+              , newGooglePrivacyDlpV2InfoType { name = Just "HTTP_COOKIE" }        :: GooglePrivacyDlpV2InfoType
+              , newGooglePrivacyDlpV2InfoType { name = Just "PASSWORD" }           :: GooglePrivacyDlpV2InfoType
+              , newGooglePrivacyDlpV2InfoType { name = Just "WEAK_PASSWORD_HASH" } :: GooglePrivacyDlpV2InfoType
+              , newGooglePrivacyDlpV2InfoType { name = Just "XSRF_TOKEN" }         :: GooglePrivacyDlpV2InfoType
+              ]
+
 sample :: Log -> Text
 sample l = let q = quoteRange' l._quoteRange l._message l._quote
            in case q of

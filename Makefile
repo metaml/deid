@@ -68,11 +68,11 @@ gcp-login: ## login to GCP
 gcp-activate:  ## activate service account--copy and paste "dlp-api" service-account key, KEY_FILE=<dlp-api>.json
 	gcloud auth activate-service-account --key-file ${KEY_FILE}
 
-deid-csv: MAX_DOCS ?= 1000
+deid-csv: MAX_DOCS ?= 10000
 deid-csv: TIMESTAMP ?= $(shell date +'%Y-%m-%d-%H%M')
 deid-csv: CSV ?= /var/tmp/deid-$(TIMESTAMP).csv
-deid-csv: ## write /tmp/deid-<timestamp>.csv
-	cabal run deid -- --max=$(MAX_DOCS) --verbose | tee $(CSV)
+deid-csv: ## write /var/tmp/deid-<timestamp>.csv
+	cabal run deid -- --verbose --max=$(MAX_DOCS) | tee $(CSV)
 
 cb-deid: ## find PII data in CB logs in GCP
 cb-deid: install cb-ps2csv cb-csv2deid

@@ -46,6 +46,16 @@ currentIndexes s = do
 type FromPos = Int
 type HitSize = Int
 
+document :: Server -> IndexName -> DocId  -> IO [ParsedEsResponse (SearchResult Value)]
+document srv ix' id' = S.fromPure (filter', spec)
+                       & S.map (\(f, s) -> (QueryBoolQuery $ mkBoolQuery [] [f] [] [], f, s))
+                       & S.map (\(q, f, s) -> (mkSearch (Just q) (Just f)) { sortBody = Just [s] })
+                       & S.mapM (\s -> withBH defaultManagerSettings srv (searchByIndex ix' s))
+                       & S.mapM parseEsResponse
+                       & S.toList
+  where filter' = Filter $ IdsQuery [id']
+        spec = DefaultSortSpec $ mkSort (FieldName "@timestamp") Descending
+
 documents :: Server -> IndexName -> FromPos -> HitSize -> IO [ParsedEsResponse (SearchResult Value)]
 documents srv ix' from' size' = S.fromPure (filter', spec)
                                 & S.map (\(f, s) -> (QueryBoolQuery $ mkBoolQuery [] [f] [] [], f, s))

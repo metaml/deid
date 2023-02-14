@@ -12,7 +12,7 @@
       let
         pname = "deid";
         pkgs = nixpkgs.legacyPackages.${system};
-        haskell-pkgs = pkgs.haskell.packages.ghc924;
+        haskell-pkgs = pkgs.haskell.packages.ghc925;
         uname = nixpkgs.lib.lists.last (nixpkgs.lib.strings.split "-" "${system}");
 
         deid = pkgs.runCommand
@@ -37,7 +37,11 @@
             pkgs.llvm
             pkgs.llvmPackages.clang
             pkgs.pkg-config
-          ] ++ (if "darwin" == "${uname}" then [pkgs.${uname}.apple_sdk.frameworks.Cocoa] else []);
+          ] ++ (
+            if "darwin" == "${uname}"
+            then [pkgs.${uname}.apple_sdk.frameworks.Cocoa]
+            else []
+          );
           buildPhase = "
             export CABAL_DIR=$out
             cabal update --verbose
@@ -55,7 +59,6 @@
             fsnotify
             fswatcher
             ghc
-            ghcid
             haskell-language-server
             hlint
             pkgs.cacert

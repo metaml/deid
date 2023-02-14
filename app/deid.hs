@@ -50,6 +50,7 @@ main = do
   T.putStrLn $ T.intercalate "," header'
 
   S.fromList indices
+    -- & S.filter (\(IndexName i) -> T.isPrefixOf "poc-" i)
     & S.trace (\(IndexName i) -> if arg'.verbose then (hPutStrLn stderr i) else pure ())
     & S.mapM (\i -> documents esUrl i 0 arg'.maxResults)
     & S.map rights
@@ -61,7 +62,9 @@ main = do
     & S.trace (\_ -> modifyIORef' hitCounter (+1))
     & S.map (\h -> (hitDocId h, hitSource h))
     & S.map (\(id', o) -> (id', fromMaybe emptyObject o))
-    & S.map (\(id', o) -> (id', select "lp_owner" o, select "service_name" o, select "message" o, select "@timestamp" o))
+    & S.map (\(id', o) -> (id', o, select "pii_data" o))
+    & S.filter (\(_, _, pii) -> pii == Just "false")
+    & S.map (\(id', o, _) -> (id', select "lp_owner" o, select "service_name" o, select "message" o, select "@timestamp" o))
     & S.map toDeid
     & S.mapM (if arg'.debug then inspectLogDebug else inspectLog) -- call GCP
     & S.trace (\_ -> modifyIORef' inspectCounter (+1))
