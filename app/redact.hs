@@ -50,10 +50,15 @@ main = do
     & S.map (\(src, msg, h) -> (src, fromJust msg, h))
     & S.trace (\t -> if arg'.verbose then print t else pure ())
     & S.mapM (\(src, msg, h) -> do
-                 msg' <- deidentify (msg <> "##michael@gmail.com")
-                 pure (src, msg', h)
+                 res <- deidentify msg
+                 pure (src, res.item, msg, h)
              )
-    & S.trace (\(_, msg, _) -> if arg'.verbose then print msg else pure ())
+    & S.filter (\(_, item, _, _) -> item /= Nothing)
+    & S.map (\(src, item, msg, h) -> (src, fromJust item, msg, h))
+    & S.map (\(src, item, msg, h) -> (src, item.value, msg, h))
+    & S.filter (\(_, val, _, _) -> val /= Nothing)
+    & S.map (\(src, val, msg, h) -> (src, fromJust val, msg, h))
+    & S.trace (\(_, val, msg, _) -> if arg'.verbose then (print val >> print msg) else pure ())
     & S.drain
 
   where
