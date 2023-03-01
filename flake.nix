@@ -11,8 +11,9 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pname = "deid";
+        ghc-version = "ghc944";
         pkgs = nixpkgs.legacyPackages.${system};
-        haskell-pkgs = pkgs.haskell.packages.ghc925;
+        haskell-pkgs = pkgs.haskell.packages.${ghc-version}; # "make update" first sometimes helps
         uname = nixpkgs.lib.lists.last (nixpkgs.lib.strings.split "-" "${system}");
 
         deid = pkgs.runCommand
@@ -34,8 +35,10 @@
             pkgs.git
             pkgs.gmp
             pkgs.google-cloud-sdk
+            pkgs.libcxx
             pkgs.llvm
             pkgs.llvmPackages.clang
+            pkgs.pcre
             pkgs.pkg-config
           ] ++ (
             if "darwin" == "${uname}"
@@ -65,7 +68,9 @@
             pkgs.git
             pkgs.gmp
             pkgs.google-cloud-sdk
+            pkgs.libcxx
             pkgs.nix
+            pkgs.pcre
             pkgs.pkg-config
             pkgs.sourceHighlight
             pkgs.zlib.dev

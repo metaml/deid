@@ -50,7 +50,7 @@ repl: ## repl
 	cabal repl
 
 update: ## update nix and cabal project dependencies
-update: nix-update cabal-update
+update: nix-update-all cabal-update
 
 cabal-update: ## update cabal project depedencies
 	nix develop \
