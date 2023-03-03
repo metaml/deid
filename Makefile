@@ -6,7 +6,7 @@ export GOOGLE_APPLICATION_CREDENTIALS ?= tmp/lpgprj-gss-p-ctrlog-gl-01-c0096aaa9
 
 PROJECT ?= ${HOME}/${LOGNAME}/proj/deid
 OPT     ?=#
-PWD      = $(shell pwd)
+PWD     := $(shell pwd)
 PORT    ?= 9200
 
 BIN ?= deid
@@ -16,7 +16,7 @@ build: clean ## build (default)
 
 buildc: clean ## build continuously
 	@cabal build 2>&1 | source-highlight --src-lang=haskell --out-format=esc
-	@fswatcher --path . --include "\.hs$$|\.cabal$$" --throttle 8 cabal -- $(OPT) build 2>&1 \
+	@fswatcher --path $(PWD) --include "\.hs$$|\.cabal$$" --throttle 8 cabal -- $(OPT) build 2>&1 \
 	| source-highlight --src-lang=haskell --out-format=esc
 
 install: # install binary
@@ -136,3 +136,5 @@ owner-service-deid: ## run DEID on etc/owner-service.csv
 		echo bin/os-deid --max 1000 --owner $$o --service $$s; \
 		bin/os-deid --max 1000 --owner $$o --service $$s | tee -a os-deid.csv; \
 	done
+
+.PHONY: test

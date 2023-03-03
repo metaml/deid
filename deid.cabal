@@ -1,4 +1,4 @@
-cabal-version:        3.8
+cabal-version:        3.6
 name:                 deid
 version:              0.1.0.0
 license:              BSD-3-Clause
@@ -81,7 +81,7 @@ library
                     , iso8601-time
                     , lens
                     , optparse-applicative
-                    , regex-with-pcre
+                    , lens-regex-pcre
                     , servant-client
                     , sort
                     , split
@@ -315,4 +315,5 @@ test-suite test
                     , OverloadedStrings
                     , OverloadedRecordDot
   build-depends: base
+               , deid
                , hspec

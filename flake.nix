@@ -11,7 +11,7 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pname = "deid";
-        ghc-version = "ghc944";
+        ghc-version = "ghc926";
         pkgs = nixpkgs.legacyPackages.${system};
         haskell-pkgs = pkgs.haskell.packages.${ghc-version}; # "make update" first sometimes helps
         uname = nixpkgs.lib.lists.last (nixpkgs.lib.strings.split "-" "${system}");
@@ -40,6 +40,7 @@
             pkgs.llvmPackages.clang
             pkgs.pcre
             pkgs.pkg-config
+            pkgs.zlib.dev
           ] ++ (
             if "darwin" == "${uname}"
             then [pkgs.${uname}.apple_sdk.frameworks.Cocoa]
