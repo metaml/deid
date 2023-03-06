@@ -26,7 +26,7 @@ urlToken :: Text -> Text
 urlToken = set ([regex|(/)[A-Za-z0-9_.-]{256,}}(/)|] . match) "[URL_TOKEN]"
 
 creditCard :: Text -> Text
-creditCard = set ([regex|('cardNumber': *|')}(/)|] . match) "[URL_TOKEN]"
+creditCard = set ([regex|('cardNumber': *|\\*"cardNumber\\*: *\\*")[A-Za-z0-9]+|] . match) "[CREDIT_CARD]"
 
 -- Email:          \w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+
 -- Phone           number: (\+?\(?[0-9]{1,4}\)?([-. ]{1})?[0-9]{3}([-. ]{1})?[0-9]{3,7})

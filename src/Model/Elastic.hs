@@ -14,6 +14,7 @@ import Prelude as P
 import qualified Data.ByteString.Lazy as B
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as N
+import qualified Data.Vector as V
 import qualified Streamly.Prelude as S
 
 indexes :: Server -> IO [IndexName]
@@ -114,6 +115,13 @@ search srv fn qs ixs = S.fromPure (query, filter', spec)
   where query = QueryMatchQuery $ (mkMatchQuery fn qs) { matchQueryOperator = And }
         filter' = Filter $ MatchAllQuery Nothing
         spec = DefaultSortSpec $ mkSort (FieldName "@timestamp") Descending
+
+update :: Server -> IndexName -> DocId -> Value -> IO (BHResponse a)
+update srv idx did v = let b = BulkUpdate idx did v
+                       in withBH defaultManagerSettings srv (bulk (V.singleton b))
+
+update' :: Server -> [BulkOperation] -> IO (BHResponse a)
+update' srv bs = withBH defaultManagerSettings srv (bulk (V.fromList bs))
 
 server :: Text -> Int -> Server
 server s p  = Server $ T.concat ["http://", s, ":", (pack . show) p]
