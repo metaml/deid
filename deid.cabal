@@ -317,3 +317,4 @@ test-suite test
   build-depends: base
                , deid
                , hspec
+               , text

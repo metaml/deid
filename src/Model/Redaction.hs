@@ -23,7 +23,7 @@ bearerToken :: Text -> Text
 bearerToken = set ([regex|(bearerToken: *|"bearerToken": *|Authorization: +Bearer +|Bearer +)("?)[A-Za-z0-9_.-]+("?)|] . match) "[BEARER_TOKEN]"
 
 urlToken :: Text -> Text
-urlToken = set ([regex|(/)[A-Za-z0-9_.-]{256,}}(/)|] . match) "[URL_TOKEN]"
+urlToken = set ([regex|(//)[A-Za-z0-9_.-]{3,}:[A-Za-z0-9_.-]{3,}(@)|] . match) "[URL_TOKEN]"
 
 creditCard :: Text -> Text
 creditCard = set ([regex|('cardNumber': *|\\*"cardNumber\\*: *\\*")[A-Za-z0-9]+|] . match) "[CREDIT_CARD]"
