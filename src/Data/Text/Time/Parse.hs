@@ -7,7 +7,6 @@ module Data.Text.Time.Parse
     ) where
 
 import           Control.Applicative
-import           Control.Monad (when)
 import qualified Data.Attoparsec.Text as A
 import           Data.Bits ((.&.))
 import           Data.Char (isDigit, ord)

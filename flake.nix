@@ -11,9 +11,9 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pname = "deid";
-        ghc-version = "ghc926";
+        ghc-version = "ghc928";
         pkgs = nixpkgs.legacyPackages.${system};
-        haskell-pkgs = pkgs.haskell.packages.${ghc-version}; # "make update" first sometimes helps
+        hkgs = pkgs.haskell.packages.${ghc-version}; # "make update" first sometimes helps
         uname = nixpkgs.lib.lists.last (nixpkgs.lib.strings.split "-" "${system}");
 
         deid = pkgs.runCommand
@@ -27,20 +27,20 @@
         packages.${system}.default = pkgs.stdenvNoCC.mkDerivation {
           name = "${pname}";
           src = self;
-          buildInputs = [
-            haskell-pkgs.cabal-install
-            haskell-pkgs.ghc
-            haskell-pkgs.zlib
-            pkgs.cacert
-            pkgs.git
-            pkgs.gmp
-            pkgs.google-cloud-sdk
-            pkgs.libcxx
-            pkgs.llvm
-            pkgs.llvmPackages.clang
-            pkgs.pcre
-            pkgs.pkg-config
-            pkgs.zlib.dev
+          buildInputs = with pkgs; [
+            cacert
+            git
+            gmp
+            google-cloud-sdk
+            hkgs.cabal-install
+            hkgs.ghc
+            hkgs.zlib
+            libcxx
+            llvm
+            llvmPackages.clang
+            pcre
+            pkg-config
+            zlib.dev
           ] ++ (
             if "darwin" == "${uname}"
             then [pkgs.${uname}.apple_sdk.frameworks.Cocoa]
@@ -58,30 +58,25 @@
 
         # nix develop
         devShell = pkgs.mkShell {
-          buildInputs = with haskell-pkgs; [
-            cabal-install
-            fsnotify
-            fswatcher
-            ghc
-            haskell-language-server
-            hlint
-            pkgs.cacert
-            pkgs.git
-            pkgs.gmp
-            pkgs.google-cloud-sdk
-            pkgs.libcxx
-            pkgs.nix
-            pkgs.pcre
-            pkgs.pkg-config
-            pkgs.sourceHighlight
-            pkgs.zlib.dev
+          buildInputs = with pkgs; [
+            cacert
+            git
+            gmp
+            google-cloud-sdk
+            hkgs.cabal-install
+            hkgs.ghc
+            hkgs.haskell-language-server
+            hkgs.hlint
+            pcre.dev
+            sourceHighlight
+            zlib.dev
           ];
           shellHook = ''
             export LANG=en_US.UTF-8
             export GOOGLE_PROJECT=lpgprj-gss-p-ctrlog-gl-01
             export GOOGLE_REGION=us-east1
             export GOOGLE_ZONE=us-east1-c
-            export PS1="nix|-$PS1"
+            export PS1="babel|$PS1"
           '';
         };
       }

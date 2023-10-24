@@ -12,9 +12,11 @@ import Data.ByteString.Lazy (toStrict)
 import Model.Csv
 import Model.PubSub
 import Prelude as P
-import Streamly.Prelude as S
+import Streamly.Data.Stream as S
 import System.IO (stderr)
 import qualified Etc.PubSub2Csv as Cli
+import qualified Streamly.Data.Fold as F
+import qualified Streamly.Data.Unfold as U
 
 main :: IO ()
 main = do
@@ -29,29 +31,29 @@ main = do
     & S.trace (stderr' arg.verbose)
     & S.mapM (flip pull arg.maxResults)
     & S.trace (increment pullCounter)
-    & S.map messages
-    & S.map (fromMaybe [])
+    & fmap messages
+    & fmap (fromMaybe [])
     & S.filter (not . P.null)
-    & S.concatMap S.fromFoldable -- stream of lists to stream of elements of lists
+    & S.unfoldMany U.fromList    
     & S.trace (increment msgCounter)
-    & S.map toIdMsgPair
+    & fmap toIdMsgPair
     & S.filter (\(aid, msg) -> isJust aid && isJust msg)
-    & S.map (\(aid, msg) -> (fromJust aid, fromJust msg))
-    & S.map (\(aid, msg) -> toRow aid msg)
+    & fmap (\(aid, msg) -> (fromJust aid, fromJust msg))
+    & fmap (\(aid, msg) -> toRow aid msg)
     & S.filter (\(_, b64, t) -> isJust b64 && isJust t)
-    & S.map (\(aid, b64, t) -> (aid, fromJust b64, fromJust t))
-    & S.map (\(aid, b64, t) -> toRow' aid b64 t)
-    & S.map (\(aid, l, t) -> encode [LogRow aid l t]) -- a line of CSV
+    & fmap (\(aid, b64, t) -> (aid, fromJust b64, fromJust t))
+    & fmap (\(aid, b64, t) -> toRow' aid b64 t)
+    & fmap (\(aid, l, t) -> encode [LogRow aid l t]) -- a line of CSV
     & S.mapM (stdout' . T.decodeUtf8 . toStrict)
-    & S.drain
+    & S.fold F.drain
 
   pulls <- readIORef pullCounter
   msgs <- readIORef msgCounter
 
   S.fromList [pulls, msgs]
-    & S.map (T.pack . show)
+    & fmap (T.pack . show)
     & S.mapM (T.hPutStrLn stderr)
-    & S.drain
+    & S.fold F.drain
 
   where
     stderr' verbose = if verbose then hPutStrLn stderr else (\_ -> pure ())

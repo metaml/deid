@@ -1,9 +1,7 @@
 module Model.Deid where
 
-import Control.Lens
 import Data.Aeson
-import Data.Csv (Header, ToField, ToRecord, record, toField, toRecord)
-import Data.Vector as V
+import Data.Csv (ToField, ToRecord, record, toField, toRecord)
 import Data.Text as T
 import Data.Text.Encoding (encodeUtf8)
 import Database.Bloodhound hiding (key)
@@ -11,7 +9,6 @@ import GHC.Generics
 import Gcp.Send
 import Gogol (Logger)
 import Gogol.DLP
-import Gogol.DLP.Types
 import Gogol.Prelude
 
 type Message = Text

@@ -15,7 +15,7 @@ import qualified Data.ByteString.Lazy as B
 import qualified Data.List as L
 import qualified Data.List.NonEmpty as N
 import qualified Data.Vector as V
-import qualified Streamly.Prelude as S
+import qualified Streamly.Data.Stream as S
 
 indexes :: Server -> IO [IndexName]
 indexes s = withBH defaultManagerSettings s $ do
@@ -28,19 +28,19 @@ currentIndexes s = do
   idxs <- indexes s
   let ixs = (\(IndexName i) -> i) <$> idxs
   ips <- S.fromPure (ixs, year)
-         & S.map (\(ixs', y) -> ((L.nub $ (P.head . T.splitOn (tshow y)) <$> ixs'), y-1))
-         & S.map (\(ixs', y) -> ((L.nub $ (P.head . T.splitOn (tshow y)) <$> ixs'), y-1))
-         & S.map (\(ixs', y) -> ((L.nub $ (P.head . T.splitOn (tshow y)) <$> ixs'), y-1))
-         & S.map (\(ixs', _) -> ((L.nub . L.sort) ixs'))
+         & fmap (\(ixs', y) -> ((L.nub $ (P.head . T.splitOn (tshow y)) <$> ixs'), y-1))
+         & fmap (\(ixs', y) -> ((L.nub $ (P.head . T.splitOn (tshow y)) <$> ixs'), y-1))
+         & fmap (\(ixs', y) -> ((L.nub $ (P.head . T.splitOn (tshow y)) <$> ixs'), y-1))
+         & fmap (\(ixs', _) -> ((L.nub . L.sort) ixs'))
          & S.toList
   ixss <- S.fromPure (P.concat ips, ixs)
-          & S.map (\(ips', ixs') -> (\ip -> (P.filter (\ix' -> ip `isPrefixOf` ix') ixs')) <$> ips')
-          & S.map (\ixss -> P.filter (\ixs' -> (not . P.null) ixs') ixss)
-          & S.map (\ixss -> if P.null ixss
+          & fmap (\(ips', ixs') -> (\ip -> (P.filter (\ix' -> ip `isPrefixOf` ix') ixs')) <$> ips')
+          & fmap (\ixss -> P.filter (\ixs' -> (not . P.null) ixs') ixss)
+          & fmap (\ixss -> if P.null ixss
                             then []
                             else (P.last . sort) <$> ixss
                   )
-          & S.map (\ixss -> IndexName <$> ixss)
+          & fmap (\ixss -> IndexName <$> ixss)
           & S.toList
   pure $ P.concat ixss
 
@@ -49,8 +49,8 @@ type HitSize = Int
 
 document :: Server -> IndexName -> DocId  -> IO [ParsedEsResponse (SearchResult Value)]
 document srv ix' id' = S.fromPure (filter', spec)
-                       & S.map (\(f, s) -> (QueryBoolQuery $ mkBoolQuery [] [f] [] [], f, s))
-                       & S.map (\(q, f, s) -> (mkSearch (Just q) (Just f)) { sortBody = Just [s] })
+                       & fmap (\(f, s) -> (QueryBoolQuery $ mkBoolQuery [] [f] [] [], f, s))
+                       & fmap (\(q, f, s) -> (mkSearch (Just q) (Just f)) { sortBody = Just [s] })
                        & S.mapM (\s -> withBH defaultManagerSettings srv (searchByIndex ix' s))
                        & S.mapM parseEsResponse
                        & S.toList
@@ -59,9 +59,9 @@ document srv ix' id' = S.fromPure (filter', spec)
 
 documents :: Server -> IndexName -> FromPos -> HitSize -> IO [ParsedEsResponse (SearchResult Value)]
 documents srv ix' from' size' = S.fromPure (filter', spec)
-                                & S.map (\(f, s) -> (QueryBoolQuery $ mkBoolQuery [] [f] [] [], f, s))
-                                & S.map (\(q, f, s) -> (mkSearch (Just q) (Just f)) { sortBody = Just [s] })
-                                & S.map (pageSearch (From from') (Size size'))
+                                & fmap (\(f, s) -> (QueryBoolQuery $ mkBoolQuery [] [f] [] [], f, s))
+                                & fmap (\(q, f, s) -> (mkSearch (Just q) (Just f)) { sortBody = Just [s] })
+                                & fmap (pageSearch (From from') (Size size'))
                                 & S.mapM (\s -> withBH defaultManagerSettings srv (searchByIndex ix' s))
                                 & S.mapM parseEsResponse
                                 & S.toList
@@ -73,9 +73,9 @@ type ServiceName' = Text
 
 documents' :: Server -> LpOwner' -> ServiceName' -> FromPos -> HitSize -> IO [ParsedEsResponse (SearchResult Value)]
 documents' srv o n from' size' = S.fromPure (fs' o n, spec)
-                                 & S.map (\(fs, s) -> (QueryBoolQuery $ mkBoolQuery [] fs [] [], f', s))
-                                 & S.map (\(q, f, s) -> (mkSearch (Just q) (Just f)) { sortBody = Just [s] })
-                                 & S.map (pageSearch (From from') (Size size'))
+                                 & fmap (\(fs, s) -> (QueryBoolQuery $ mkBoolQuery [] fs [] [], f', s))
+                                 & fmap (\(q, f, s) -> (mkSearch (Just q) (Just f)) { sortBody = Just [s] })
+                                 & fmap (pageSearch (From from') (Size size'))
                                  & S.mapM (\s -> withBH defaultManagerSettings srv (searchAll s))
                                  & S.mapM parseEsResponse
                                  & S.toList
@@ -103,9 +103,9 @@ ownerServiceNames srv idx = do
 
 search :: Server -> FieldName -> QueryString -> [IndexName] -> IO [ParsedEsResponse (SearchResult Value)]
 search srv fn qs ixs = S.fromPure (query, filter', spec)
-                       & S.map (\(q, f, s) -> (QueryBoolQuery $ mkBoolQuery [q] [] [] [], f, s))
-                       & S.map (\(q, f, s) -> (mkSearch (Just q) (Just f)) { sortBody = Just [s] })
-                       & S.map (\s -> (srv, pageSearch (From 0) (Size 1) s, ixs))
+                       & fmap (\(q, f, s) -> (QueryBoolQuery $ mkBoolQuery [q] [] [] [], f, s))
+                       & fmap (\(q, f, s) -> (mkSearch (Just q) (Just f)) { sortBody = Just [s] })
+                       & fmap (\s -> (srv, pageSearch (From 0) (Size 1) s, ixs))
                        & S.mapM (\(srv', s, ixs') -> if L.null ixs'
                                                      then withBH defaultManagerSettings srv' (searchAll s)
                                                      else withBH defaultManagerSettings srv' (searchByIndices (N.fromList ixs) s)

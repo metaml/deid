@@ -3,6 +3,22 @@ module Model.Redaction where
 import Control.Lens
 import Control.Lens.Regex.Text
 import Data.Text
+import qualified Streamly.Data.Stream as S
+import qualified Streamly.Data.Fold as F
+
+redact :: Text -> IO Text
+redact t = do
+  t' <- S.fromList [t]
+        & fmap email
+        & fmap phone
+        & fmap ip
+        & fmap jsonWebToken
+        & fmap accessToken
+        & fmap bearerToken
+        & fmap urlToken
+        & fmap creditCard
+        & S.fold F.drain
+  pure t'
 
 email :: Text -> Text
 email = set ([regex|\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+|] . match) "[EMAIL]"

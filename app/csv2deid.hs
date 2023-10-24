@@ -14,15 +14,16 @@ import Gogol.DLP.Types
 import Model.Csv
 import Model.Deid
 import Prelude as P hiding (getLine)
-import Streamly.Prelude as S
+import Streamly.Data.Stream as S
 import System.IO (hPutStrLn, stderr)
 import qualified Data.Aeson.KeyMap as M
 import qualified Data.ByteString.Lazy.Char8 as C
 import qualified Data.Text.IO as IO
-import qualified Data.Text.Lazy as L
 import qualified Data.Vector as V
 import qualified Database.Bloodhound as BH
 import qualified Etc.Csv2Deid as Cli
+import qualified Streamly.Data.Fold as F
+import qualified Streamly.Data.Unfold as U
 
 main :: IO ()
 main = do
@@ -33,60 +34,60 @@ main = do
 
   S.repeatM B.getLine
     & S.trace (increment csvCounter)
-    & S.map C.fromStrict
+    & fmap C.fromStrict
     & S.mapM (\l -> case (Csv.decode NoHeader l :: Either String (V.Vector LogRow)) of
                       Left e  -> print e >> pure []
                       Right v -> pure $ V.toList v
              )
     & S.filter (not . P.null)
     & S.trace (stderr' . show)
-    & S.concatMap S.fromFoldable
-    & S.map (\l -> (l.ackId, T.encodeUtf8 l.payload, l.timestamp))
-    & S.map (\(aid, l, t) -> (aid, C.fromStrict l, t))
-    & S.map (\(aid, l, t) -> (aid, (A.decode l) :: Maybe Object, t))
+    & S.unfoldMany U.fromList
+    & fmap (\l -> (l.ackId, T.encodeUtf8 l.payload, l.timestamp))
+    & fmap (\(aid, l, t) -> (aid, C.fromStrict l, t))
+    & fmap (\(aid, l, t) -> (aid, (A.decode l) :: Maybe Object, t))
     & S.filter (\(_, l, _) -> isJust l)
-    & S.map (\(aid, o, t) -> (aid, fromJust o, t))
-    & S.map (\(aid, o, t) -> (aid, M.lookup "jsonPayload" o, M.lookup "logName" o, M.lookup "resource" o, t))
+    & fmap (\(aid, o, t) -> (aid, fromJust o, t))
+    & fmap (\(aid, o, t) -> (aid, M.lookup "jsonPayload" o, M.lookup "logName" o, M.lookup "resource" o, t))
     & S.filter (\(_, p, n, r, _) -> isJust p && isJust n && isJust r)
-    & S.map (\(aid, p, n, r, t) -> (aid, fromJust p, fromJust n, fromJust r, t))
-    & S.map (\(aid, Object p, n, Object r, t) -> (aid, M.lookup "labels" r, n, p, t))
+    & fmap (\(aid, p, n, r, t) -> (aid, fromJust p, fromJust n, fromJust r, t))
+    & fmap (\(aid, Object p, n, Object r, t) -> (aid, M.lookup "labels" r, n, p, t))
     & S.filter (\(_, l, _, _, _) -> isJust l)
-    & S.map (\(aid, l, n, p, t) -> (aid, fromJust l, n, p, t))
-    & S.map (\(aid, Object l, String n, p, t) -> (aid, M.lookup "project_id" l, P.last (T.splitOn "/" n), p, t))
+    & fmap (\(aid, l, n, p, t) -> (aid, fromJust l, n, p, t))
+    & fmap (\(aid, Object l, String n, p, t) -> (aid, M.lookup "project_id" l, P.last (T.splitOn "/" n), p, t))
     & S.filter (\(_, pid, _, _, _) -> isJust pid)
     -- & S.trace (\t -> hPutStrLn stderr (show t))
-    & S.map (\(aid, pid, n, p, t) -> (aid, fromJust pid, n, p, t))
-    & S.map (\(aid, String pid, n, p, t) -> (aid, pid, n, A.encode p, t))
+    & fmap (\(aid, pid, n, p, t) -> (aid, fromJust pid, n, p, t))
+    & fmap (\(aid, String pid, n, p, t) -> (aid, pid, n, A.encode p, t))
     & S.mapM (\(aid, pid, n, p, t) -> do
                 r <- inspect (T.decodeUtf8 (B.toStrict p))
                 pure (aid, pid, n, r, p, t)
              )
-    & S.map (\(aid, pid, n, r, p, t) -> (aid, pid, n, toFindings r, p, t))
+    & fmap (\(aid, pid, n, r, p, t) -> (aid, pid, n, toFindings r, p, t))
     & S.trace (stderr' . show)
     & S.filter (\(_, _, _, fs, _, _) -> (not . P.null) fs)
-    & S.map (\(aid, pid, n, fs, p, t) -> (\f -> (aid, pid, n, f, p, t)) <$> fs)
-    & S.concatMap S.fromFoldable
-    & S.map (\(aid, pid, n, f, p, t) -> (aid, pid, n, f.quote, f.infoType, f.likelihood, f.location, p, t))
+    & fmap (\(aid, pid, n, fs, p, t) -> (\f -> (aid, pid, n, f, p, t)) <$> fs)
+    & S.unfoldMany U.fromList    
+    & fmap (\(aid, pid, n, f, p, t) -> (aid, pid, n, f.quote, f.infoType, f.likelihood, f.location, p, t))
     & S.filter (\(_, _, _, q, i, l, loc, _, _) -> isJust q && isJust i && isJust l && isJust loc)
-    & S.map (\(aid, pid, n, q, i, l, loc, p, t) -> (aid, pid, n, fromJust q, fromJust i, fromJust l, fromJust loc, p, t))
-    & S.map (\(aid, pid, n, q, i, l, loc, p, t) -> (aid, pid, n, q, i.name, l.fromGooglePrivacyDlpV2Finding_Likelihood, loc.byteRange, p, t))
+    & fmap (\(aid, pid, n, q, i, l, loc, p, t) -> (aid, pid, n, fromJust q, fromJust i, fromJust l, fromJust loc, p, t))
+    & fmap (\(aid, pid, n, q, i, l, loc, p, t) -> (aid, pid, n, q, i.name, l.fromGooglePrivacyDlpV2Finding_Likelihood, loc.byteRange, p, t))
     & S.filter (\(_, _, _, _, i, _, r, _, _) -> isJust i && isJust r)
-    & S.map (\(aid, pid, n, q, i, l, r, p, t) -> (aid, pid, n, q, fromJust i, l, fromJust r, p, t))
-    & S.map (\(aid, pid, n, q, i, l, r, p, t) -> (aid, pid, n, q, i, l, (r.start, r.end), p, t))
+    & fmap (\(aid, pid, n, q, i, l, r, p, t) -> (aid, pid, n, q, fromJust i, l, fromJust r, p, t))
+    & fmap (\(aid, pid, n, q, i, l, r, p, t) -> (aid, pid, n, q, i, l, (r.start, r.end), p, t))
     & S.filter (\(_, _, _, _, _, _, (s, e), _, _) -> isJust s && isJust e)
-    & S.map (\(aid, pid, n, q, i, l, (s, e), p, t) -> (aid, pid, n, q, i, l, (fromJust s, fromJust e), p, t))
-    & S.map (\(aid, pid, n, q, i, l, pair, p, t) -> (aid, pid, n, q, i, l, pad pair p, (decodeUtf8 . B.toStrict) p, t))
-    & S.map (\(aid, pid, n, q, i, l, pair, p, t) -> Log (BH.DocId aid) pid n p ((T.pack . show) t) (Just q) (Just i) (Just l) (Just pair))
-    & S.map (\l -> Csv.encode [l])
+    & fmap (\(aid, pid, n, q, i, l, (s, e), p, t) -> (aid, pid, n, q, i, l, (fromJust s, fromJust e), p, t))
+    & fmap (\(aid, pid, n, q, i, l, pair, p, t) -> (aid, pid, n, q, i, l, pad pair p, (decodeUtf8 . B.toStrict) p, t))
+    & fmap (\(aid, pid, n, q, i, l, pair, p, t) -> Log (BH.DocId aid) pid n p ((T.pack . show) t) (Just q) (Just i) (Just l) (Just pair))
+    & fmap (\l -> Csv.encode [l])
     & S.mapM (IO.putStr . T.decodeUtf8 . B.toStrict)
-    & S.drain
+    & S.fold F.drain
 
   csvs <- readIORef csvCounter
 
   S.fromList [csvs]
-    & S.map show
+    & fmap show
     & S.mapM (hPutStrLn stderr)
-    & S.drain
+    & S.fold F.drain
 
   where
     toFindings :: GooglePrivacyDlpV2InspectContentResponse ->  [GooglePrivacyDlpV2Finding]

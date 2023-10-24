@@ -16,10 +16,12 @@ import Database.Bloodhound hiding (key)
 import Etc.Deid
 import Model.Elastic as Es
 import Prelude as P
-import Streamly.Prelude as S
+import Streamly.Data.Stream as S
 import System.IO (stderr)
 import qualified Data.Set as Set
 import qualified Etc.Deid as Cli
+import qualified Streamly.Data.Fold as F
+import qualified Streamly.Data.Unfold as U
 
 main :: IO ()
 main = do
@@ -33,22 +35,22 @@ main = do
   S.fromList indices
     & S.trace (\(IndexName i) -> if arg'.verbose then (hPutStrLn stderr i) else pure ())
     & S.mapM (\i -> documents esUrl i 0 arg'.maxResults)
-    & S.map rights
+    & fmap rights
     & S.filter (not . P.null)
-    & S.concatMap S.fromFoldable -- transform a stream of lists to a stream of elements
-    & S.map searchHits
-    & S.map hits
-    & S.concatMap S.fromFoldable
-    & S.map (\h -> (hitDocId h, hitSource h))
-    & S.map (\(id', o) -> (id', fromMaybe emptyObject o))
-    & S.map (\(id', o) -> (id', select "message" o, select "@timestamp" o))
+    & S.unfoldMany U.fromList    
+    & fmap searchHits
+    & fmap hits
+    & S.unfoldMany U.fromList
+    & fmap (\h -> (hitDocId h, hitSource h))
+    & fmap (\(id', o) -> (id', fromMaybe emptyObject o))
+    & fmap (\(id', o) -> (id', select "message" o, select "@timestamp" o))
     & S.filter (\(_, m, t) -> isJust m && isJust t)
-    & S.map (\(DocId id', m, t) -> (id', fromJust m, fromJust t))
-    & S.map (\(id', m, t) -> (id', T.length m, t))
-    & S.map (\t@(id', l, ts) -> (id', l, ts, encode [t]))
-    & S.map (\(id', l, ts, t) -> (id', l, ts, (toStrict . decodeUtf8) t))
+    & fmap (\(DocId id', m, t) -> (id', fromJust m, fromJust t))
+    & fmap (\(id', m, t) -> (id', T.length m, t))
+    & fmap (\t@(id', l, ts) -> (id', l, ts, encode [t]))
+    & fmap (\(id', l, ts, t) -> (id', l, ts, (toStrict . decodeUtf8) t))
     & S.mapM (\(_, _, _, t) -> T.putStr t)
-    & S.drain
+    & S.fold F.drain
 
   where
     select :: A.Key -> Value -> Maybe Text

@@ -6,7 +6,7 @@ import Data.Csv as Csv
 import Model.Csv
 import Model.Deid
 import Prelude as P hiding (getLine)
-import Streamly.Prelude as S
+import Streamly.Data.Stream as S
 import System.IO (hPutStrLn, stderr)
 
 main :: IO ()

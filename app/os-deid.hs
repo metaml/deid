@@ -20,10 +20,12 @@ import Gogol.DLP.Types
 import Model.Deid
 import Model.Elastic as Es
 import Prelude as P
-import Streamly.Prelude as S
+import Streamly.Data.Stream as S
 import System.IO (stderr)
 import qualified Data.Text.Lazy as L
 import qualified Etc.OsDeid as Cli
+import qualified Streamly.Data.Fold as F
+import qualified Streamly.Data.Unfold as U
 
 type DeidTuple = ( DocId
                  , Maybe LpOwner
@@ -49,20 +51,20 @@ main = do
                           then (hPutStr stderr o >> hPutStr stderr "," >> hPutStrLn stderr s)
                           else pure ())
     & S.mapM (\(o, s) -> documents' url o s 0 arg'.maxResults)
-    & S.map rights
+    & fmap rights
     & S.filter (not . P.null)
-    & S.concatMap S.fromFoldable -- transform a stream of lists to a stream of elements
-    & S.map searchHits
-    & S.map hits
-    & S.concatMap S.fromFoldable
+    & S.unfoldMany U.fromList
+    & fmap searchHits
+    & fmap hits
+    & S.unfoldMany U.fromList    
     & S.trace (\_ -> modifyIORef' hitCounter (+1))
-    & S.map (\h -> (hitDocId h, hitSource h))
-    & S.map (\(id', o) -> (id', fromMaybe emptyObject o))
-    & S.map (\(id', o) -> (id', select "lp_owner" o, select "service_name" o, select "message" o, select "@timestamp" o))
+    & fmap (\h -> (hitDocId h, hitSource h))
+    & fmap (\(id', o) -> (id', fromMaybe emptyObject o))
+    & fmap (\(id', o) -> (id', select "lp_owner" o, select "service_name" o, select "message" o, select "@timestamp" o))
     & S.trace (\e -> if arg'.verbose
                      then (T.hPutStrLn stderr . T.pack . P.show $ e)
                      else pure ())
-    & S.map toDeid
+    & fmap toDeid
     & S.mapM (if arg'.debug then inspectLogDebug else inspectLog) -- call GCP
     & S.trace (\_ -> modifyIORef' inspectCounter (+1))
     & S.mapM (\e -> case (toFindings e) of
@@ -70,29 +72,29 @@ main = do
                       Left e'  -> when arg'.debug (hPutStrLn stderr e') >> pure []
              )
     & S.filter (not . P.null)
-    & S.concatMap S.fromFoldable
-    & S.map (\(f, l) -> (f.quote, f.infoType, f.likelihood, f.location, l))
+    & S.unfoldMany U.fromList        
+    & fmap (\(f, l) -> (f.quote, f.infoType, f.likelihood, f.location, l))
     & S.filter (\(q, _, _, _, _) -> isJust q)
-    & S.map (\(q, i, l, loc, log') -> (fromJust q, fromJust i, fromJust l, fromJust loc, log'))
-    & S.map (\(q, i, l, loc, log') -> ( loc.codepointRange
+    & fmap (\(q, i, l, loc, log') -> (fromJust q, fromJust i, fromJust l, fromJust loc, log'))
+    & fmap (\(q, i, l, loc, log') -> ( loc.codepointRange
                                       , log' { _quote = Just q
                                              , _infoType = i.name
                                              , _likelihood = Just (strip l.fromGooglePrivacyDlpV2Finding_Likelihood)
                                              }
                                       )
             )
-    & S.map (\(cpr, log') -> case cpr of
-                               Just cpr' -> log' { _quoteRange = if isJust cpr'.start && isJust cpr'.end
-                                                                 then Just ( (fromIntegral . fromJust) cpr'.start
-                                                                           , (fromIntegral . fromJust) cpr'.end
-                                                                           )
-                                                                 else Nothing
+    & fmap (\(cpr, log') -> case cpr of
+                              Just cpr' -> log' { _quoteRange = if isJust cpr'.start && isJust cpr'.end
+                                                                then Just ( (fromIntegral . fromJust) cpr'.start
+                                                                          , (fromIntegral . fromJust) cpr'.end
+                                                                          )
+                                                                else Nothing
                                                  }
-                               Nothing -> log' { _quoteRange = Nothing }
+                              Nothing -> log' { _quoteRange = Nothing }
             )
     & S.mapM (\l -> T.putStr $ (L.toStrict . T.decodeUtf8 . encode) [l])
     & S.trace (\_ -> modifyIORef' deidCounter (+1))
-    & S.drain
+    & S.fold F.drain
 
   esHits <- readIORef hitCounter
   gcpInspections <- readIORef inspectCounter

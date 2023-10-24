@@ -11,12 +11,17 @@ PORT    ?= 9200
 
 BIN ?= deid
 
+NEWER=streamly-core:ghc-prim,streamly-core:template-haskell,template-haskell
+CABAL_BUILD=cabal build --minimize-conflict-set --allow-newer='$(NEWER)' --jobs=\$$ncpus 
+
 build: clean ## build (default)
-	cabal $(OPT) build --minimize-conflict-set --jobs='$$ncpus' | source-highlight --src-lang=haskell --out-format=esc
+	@$(CABAL_BUILD) 2>&1 \
+	| source-highlight --src-lang=haskell --out-format=esc
 
 buildc: clean ## build continuously
-	@cabal build 2>&1 | source-highlight --src-lang=haskell --out-format=esc
-	@fswatcher --path $(PWD) --include "\.hs$$|\.cabal$$" --throttle 8 cabal -- $(OPT) build 2>&1 \
+	@$(CABAL_BUILD) 2>&1 \
+	| source-highlight --src-lang=haskell --out-format=esc
+	watchexec --exts cabal,hs -- $(CABAL_BUILD) 2>&1 \
 	| source-highlight --src-lang=haskell --out-format=esc
 
 install: # install binary
