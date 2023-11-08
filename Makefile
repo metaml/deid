@@ -21,7 +21,7 @@ build: clean ## build (default)
 buildc: # clean ## build continuously
 	@$(CABAL_BUILD) 2>&1 \
 	| source-highlight --src-lang=haskell --out-format=esc
-	watchexec --exts cabal,hs -- $(CABAL_BUILD) \
+	watchexec --exts cabal,hs -- $(CABAL_BUILD) 2>&1 \
 	| source-highlight --src-lang=haskell --out-format=esc
 
 install: # install binary
