@@ -69,6 +69,7 @@
             hkgs.hlint
             pcre.dev
             sourceHighlight
+            watchexec
             zlib.dev
           ];
           shellHook = ''
